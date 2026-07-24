@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VTuber Live Observatory</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/navigation.css">
+  <link rel="stylesheet" href="/dashboard-theme.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="nav-left">
+      <button class="menu-button" type="button" aria-label="開啟導覽選單" aria-expanded="false"><span></span></button>
+      <a class="brand" href="/"><span class="brand-mark">V</span><span>Live Observatory</span></a>
+    </div>
+    <div class="status"><i></i><span id="sync-label">正在連線資料庫…</span></div>
+  </header>
+  <div class="drawer-overlay"></div>
+  <aside class="nav-drawer" aria-label="網站導覽">
+    <div class="drawer-head"><strong>Explore</strong><button class="drawer-close" type="button" aria-label="關閉選單">×</button></div>
+    <a class="drawer-home" href="/"><span>直播總覽</span><span>⌂</span></a>
+    <div class="drawer-section-title">GROUP ANALYTICS</div>
+    <div class="drawer-groups"><div class="drawer-loading">開啟後載入 Group…</div></div>
+    <div class="drawer-foot">LIVE OBSERVATORY</div>
+  </aside>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">TAIWAN VTUBER LIVE INTELLIGENCE</p>
+        <h1>直播數據，<br><em>一眼掌握。</em></h1>
+        <p class="lede">從即時觀眾到歷史直播，將抓取器累積的資料整理成清楚、可探索的觀測站。</p>
+      </div>
+      <div class="orb" aria-hidden="true"><span></span></div>
+    </section>
+
+    <section class="metrics" id="metrics">
+      <article><small>目前直播</small><strong id="live-now">—</strong><span>個頻道在線</span></article>
+      <article><small>即時觀眾</small><strong id="viewers-now">—</strong><span>跨平台合計</span></article>
+      <article><small>追蹤頻道</small><strong id="streamers">—</strong><span>已啟用 VTuber</span></article>
+      <article><small>歷史直播</small><strong id="streams">—</strong><span id="platform-mix">YouTube + Twitch</span></article>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <div><p class="eyebrow">ON AIR</p><h2>正在直播</h2></div>
+        <span class="live-pill"><i></i> LIVE</span>
+      </div>
+      <div class="live-grid" id="live-grid"><div class="empty">讀取直播狀態中…</div></div>
+    </section>
+
+    <section class="split">
+      <article class="panel chart-panel">
+        <div class="panel-head"><div><p class="eyebrow">LAST 14 DAYS</p><h2>直播活動</h2></div></div>
+        <div id="activity-chart" class="chart"></div>
+      </article>
+      <article class="panel health-panel">
+        <div class="panel-head"><div><p class="eyebrow">COLLECTOR</p><h2>抓取器狀態</h2></div><span id="health-badge"></span></div>
+        <div id="health-list" class="health-list"></div>
+      </article>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <div><p class="eyebrow">ARCHIVE</p><h2>近期直播紀錄</h2></div>
+        <div class="filters">
+          <input id="search" type="search" placeholder="搜尋頻道或標題">
+          <select id="platform"><option value="">所有平台</option><option value="youtube">YouTube</option><option value="twitch">Twitch</option></select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>頻道</th><th>直播標題</th><th>平台</th><th>開始時間</th><th class="number">最高觀眾</th></tr></thead>
+          <tbody id="stream-table"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer><span>Live Observatory · local preview</span><span>資料來源：live_data.db</span></footer>
+  <script src="/navigation.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>個人分析｜Live Observatory</title>
+  <link rel="stylesheet" href="/analytics.css">
+  <link rel="stylesheet" href="/navigation.css">
+  <link rel="stylesheet" href="/dashboard-theme.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="nav-left">
+      <button class="menu-button" type="button" aria-label="開啟導覽選單" aria-expanded="false"><span></span></button>
+      <a class="brand" href="/"><span class="brand-mark">V</span><span>Live Observatory</span></a>
+    </div>
+    <nav><a href="/">總覽</a><a class="active" id="group-nav" href="/groups/meridian">Group 分析</a></nav>
+  </header>
+  <div class="drawer-overlay"></div>
+  <aside class="nav-drawer" aria-label="網站導覽">
+    <div class="drawer-head"><strong>Explore</strong><button class="drawer-close" type="button" aria-label="關閉選單">×</button></div>
+    <a class="drawer-home" href="/"><span>直播總覽</span><span>⌂</span></a>
+    <div class="drawer-section-title">GROUP ANALYTICS</div>
+    <div class="drawer-groups"><div class="drawer-loading">開啟後載入 Group…</div></div>
+    <div class="drawer-foot">LIVE OBSERVATORY</div>
+  </aside>
+  <main>
+    <div class="crumbs"><a href="/">首頁</a><span>/</span><a id="group-link" href="#">Group</a><span>/</span><span id="member-crumb">成員</span></div>
+    <section class="profile-hero">
+      <div class="profile-avatar" id="profile-avatar">V</div>
+      <div class="profile-copy">
+        <div class="profile-labels"><span id="group-label">GROUP</span><span id="live-status"></span></div>
+        <h1 id="member-name">讀取中…</h1>
+        <p id="member-id">—</p>
+        <div class="profile-links" id="profile-links"></div>
+      </div>
+      <div class="profile-period"><small>資料涵蓋期間</small><strong id="period">—</strong></div>
+    </section>
+    <section class="metric-grid">
+      <article><small>直播場次</small><strong id="total-streams">—</strong><span id="platform-counts">—</span></article>
+      <article class="metric-platform"><small>歷史最高觀眾</small><div><span><b>YT</b><strong id="youtube-peak">—</strong></span><span><b>TW</b><strong id="twitch-peak">—</strong></span></div></article>
+      <article class="metric-platform"><small>平均觀眾</small><div><span><b>YT</b><strong id="youtube-viewers">—</strong></span><span><b>TW</b><strong id="twitch-viewers">—</strong></span></div></article>
+      <article><small>觀測直播時數</small><strong id="observed-hours">—</strong><span>依快照涵蓋時間估算</span></article>
+    </section>
+    <section class="analysis-grid">
+      <article class="panel wide">
+        <div class="panel-head">
+          <div><p class="eyebrow">ACTIVE TIME DISTRIBUTION · HALF-HOURLY</p><h2>最常直播時段</h2></div>
+          <span class="time-legends"><i class="youtube"></i>YouTube <i class="twitch"></i>Twitch</span>
+        </div>
+        <div class="hour-chart" id="hour-chart"></div>
+      </article>
+      <article class="panel">
+        <div class="panel-head"><div><p class="eyebrow">TWITCH CATEGORIES</p><h2>Twitch 分類</h2></div></div>
+        <div class="category-list" id="category-list"></div>
+      </article>
+      <article class="panel">
+        <div class="panel-head">
+          <div><p class="eyebrow">4-WEEK BROADCAST CALENDAR</p><h2>近四週開台月曆</h2></div>
+          <span class="calendar-legend" id="calendar-legend"><i class="youtube"></i>YT <i class="twitch"></i>TW <i class="dual"></i>雙平台</span>
+        </div>
+        <div class="broadcast-calendar" id="broadcast-calendar"></div>
+      </article>
+    </section>
+    <section class="history">
+      <div class="section-head">
+        <div><p class="eyebrow">BROADCAST ARCHIVE · LATEST 50</p><h2>近期直播資料</h2></div>
+        <select id="history-platform"><option value="">所有平台</option><option value="youtube">YouTube</option><option value="twitch">Twitch</option></select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>日期</th><th>直播標題</th><th>分類</th><th>平台</th><th class="number">最高觀眾</th><th class="number">平均觀眾</th><th class="number">快照</th></tr></thead>
+          <tbody id="history-table"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <div class="stream-modal" id="stream-modal" aria-hidden="true">
+    <div class="stream-modal-backdrop" data-close-modal></div>
+    <section class="stream-modal-panel" role="dialog" aria-modal="true" aria-labelledby="stream-modal-title">
+      <button class="stream-modal-close" type="button" data-close-modal aria-label="關閉">×</button>
+      <div class="stream-modal-head">
+        <p class="eyebrow">VIEWER SNAPSHOTS</p>
+        <h2 id="stream-modal-title">直播觀眾走勢</h2>
+        <div id="stream-modal-meta"></div>
+      </div>
+      <div class="viewer-chart" id="viewer-chart"><div class="empty">載入中…</div></div>
+      <div class="stream-modal-stats" id="stream-modal-stats"></div>
+    </section>
+  </div>
+  <footer><a id="back-group" href="#">← 回到成員列表</a><span>Live Observatory · Member Analytics</span></footer>
+  <script src="/navigation.js"></script>
+  <script src="/member.js"></script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Group 成員｜Live Observatory</title>
+  <link rel="stylesheet" href="/analytics.css">
+  <link rel="stylesheet" href="/navigation.css">
+  <link rel="stylesheet" href="/dashboard-theme.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="nav-left">
+      <button class="menu-button" type="button" aria-label="開啟導覽選單" aria-expanded="false"><span></span></button>
+      <a class="brand" href="/"><span class="brand-mark">V</span><span>Live Observatory</span></a>
+    </div>
+    <nav><a href="/">總覽</a><a class="active" href="/groups/meridian">Group 分析</a></nav>
+  </header>
+  <div class="drawer-overlay"></div>
+  <aside class="nav-drawer" aria-label="網站導覽">
+    <div class="drawer-head"><strong>Explore</strong><button class="drawer-close" type="button" aria-label="關閉選單">×</button></div>
+    <a class="drawer-home" href="/"><span>直播總覽</span><span>⌂</span></a>
+    <div class="drawer-section-title">GROUP ANALYTICS</div>
+    <div class="drawer-groups"><div class="drawer-loading">開啟後載入 Group…</div></div>
+    <div class="drawer-foot">LIVE OBSERVATORY</div>
+  </aside>
+  <main>
+    <div class="crumbs"><a href="/">首頁</a><span>/</span><span id="crumb-group">Group</span></div>
+    <section class="group-hero">
+      <div>
+        <p class="eyebrow">GROUP DIRECTORY</p>
+        <h1 id="group-title">Meridian</h1>
+        <p>成員基礎資料與直播表現總覽。點選成員即可查看個人歷史趨勢與每場直播紀錄。</p>
+      </div>
+      <div class="group-seal"><span id="seal-letter">M</span><small>LIVE DATA</small></div>
+    </section>
+    <section class="summary-strip">
+      <div><small>成員</small><strong id="member-count">—</strong></div>
+      <div><small>Available 成員</small><strong id="available-count">—</strong></div>
+      <div><small>累積直播</small><strong id="stream-count">—</strong></div>
+      <div><small>目前直播</small><strong id="live-count">—</strong></div>
+      <div class="average-card">
+        <small>平均觀眾</small>
+        <span class="platform-average"><b>YT</b><strong id="youtube-average">—</strong></span>
+        <span class="platform-average"><b>TW</b><strong id="twitch-average">—</strong></span>
+      </div>
+    </section>
+    <section class="directory">
+      <div class="section-head">
+        <div><p class="eyebrow">MEMBERS</p><h2>成員列表</h2></div>
+        <div class="controls">
+          <a class="analysis-link" id="group-analysis-link" href="/groups/meridian/analysis">Group 整體分析 ↗</a>
+          <input id="member-search" type="search" placeholder="搜尋成員">
+          <select id="member-sort">
+            <option value="order">官方排序</option>
+            <option value="streams">直播場次</option>
+            <option value="average">平均觀看</option>
+            <option value="latest">最近直播</option>
+          </select>
+        </div>
+      </div>
+      <div class="member-list" id="member-list"><div class="empty">讀取成員資料中…</div></div>
+    </section>
+  </main>
+  <footer><a href="/">← 回到直播總覽</a><span>Live Observatory · Group Analytics</span></footer>
+  <script src="/navigation.js"></script>
+  <script src="/group.js"></script>
+</body>
+</html>
