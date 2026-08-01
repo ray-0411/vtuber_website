@@ -34,7 +34,18 @@
         <p id="member-id">—</p>
         <div class="profile-links" id="profile-links"></div>
       </div>
-      <div class="profile-period"><small>資料涵蓋期間</small><strong id="period">—</strong></div>
+      <div class="profile-period">
+        <a class="history-open-button" id="open-history" href="#">歷史紀錄</a>
+        <label for="analysis-period">分析期間</label>
+        <select id="analysis-period">
+          <option value="1m">近 1 個月</option>
+          <option value="3m">近 3 個月</option>
+          <option value="6m">近 6 個月</option>
+          <option value="1y">近 1 年</option>
+          <option value="all">全部</option>
+        </select>
+        <small>資料涵蓋期間</small><strong id="period">—</strong>
+      </div>
     </section>
     <section class="metric-grid">
       <article><small>直播場次</small><strong id="total-streams">—</strong><span id="platform-counts">—</span></article>
@@ -90,6 +101,6 @@
   </div>
   <footer><a id="back-group" href="#">← 回到成員列表</a><span>Live Observatory · Member Analytics</span></footer>
   <script src="/navigation.js"></script>
-  <script src="/member.js"></script>
+  <script src="/member.js?v=2"></script>
 </body>
 </html>

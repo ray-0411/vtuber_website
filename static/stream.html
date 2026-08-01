@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>直播詳細資料｜Live Observatory</title>
+  <link rel="stylesheet" href="/analytics.css">
+  <link rel="stylesheet" href="/navigation.css">
+  <link rel="stylesheet" href="/dashboard-theme.css">
+</head>
+<body class="stream-detail-page">
+  <header class="topbar">
+    <div class="nav-left">
+      <button class="menu-button" type="button" aria-label="開啟導覽選單" aria-expanded="false"><span></span></button>
+      <a class="brand" href="/"><span class="brand-mark">V</span><span>Live Observatory</span></a>
+    </div>
+    <nav><a href="/">總覽</a><a class="active" id="group-nav" href="#">Group 分析</a></nav>
+  </header>
+  <div class="drawer-overlay"></div>
+  <aside class="nav-drawer" aria-label="網站導覽">
+    <div class="drawer-head"><strong>Explore</strong><button class="drawer-close" type="button" aria-label="關閉選單">×</button></div>
+    <a class="drawer-home" href="/"><span>直播總覽</span><span>⌂</span></a>
+    <div class="drawer-section-title">GROUP ANALYTICS</div>
+    <div class="drawer-groups"><div class="drawer-loading">開啟後載入 Group…</div></div>
+    <div class="drawer-foot">LIVE OBSERVATORY</div>
+  </aside>
+  <main>
+    <div class="crumbs"><a href="/">首頁</a><span>/</span><a id="group-link" href="#">Group</a><span>/</span><a id="member-link" href="#">成員</a><span>/</span><a id="history-link" href="#">歷史紀錄</a><span>/</span><span>直播詳細資料</span></div>
+    <section class="stream-detail-hero">
+      <div class="stream-detail-heading">
+        <div id="stream-detail-labels"></div>
+        <p class="eyebrow">BROADCAST DETAIL</p>
+        <h1 id="stream-detail-title">讀取中…</h1>
+        <p id="stream-detail-meta">正在讀取直播資料</p>
+      </div>
+      <a class="stream-original-link" id="stream-original-link" href="#" target="_blank" rel="noreferrer" hidden>開啟原直播 ↗</a>
+    </section>
+    <section class="stream-detail-stats" id="stream-detail-stats"></section>
+    <section class="panel stream-detail-chart-panel">
+      <div class="panel-head"><div><p class="eyebrow">VIEWER SNAPSHOTS</p><h2>觀眾人數走勢</h2></div></div>
+      <div class="viewer-chart" id="stream-detail-chart"><div class="empty">載入中…</div></div>
+    </section>
+  </main>
+  <footer><a id="back-history" href="#">← 回到月份歷史紀錄</a><span>Live Observatory · Broadcast Detail</span></footer>
+  <script src="/navigation.js"></script>
+  <script src="/stream.js"></script>
+</body>
+</html>

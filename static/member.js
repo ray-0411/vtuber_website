@@ -4,6 +4,8 @@ const parts = location.pathname.split("/").filter(Boolean);
 const group = parts[1] || "meridian";
 const isGroupAnalysis = parts[2] === "analysis";
 const memberId = isGroupAnalysis ? null : parts[3];
+const validPeriods = new Set(["1m", "3m", "6m", "1y", "all"]);
+const requestedPeriod = new URLSearchParams(location.search).get("period");
 let analysis;
 
 const safe = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -49,9 +51,8 @@ function hourChart(rows) {
   </svg>`;
 }
 
-function renderHistory(platform = "") {
-  const rows = analysis.streams.filter(x => !platform || x.platform === platform);
-  $("#history-table").innerHTML = rows.map(row => `
+function streamRows(rows, emptyMessage = "尚無直播資料") {
+  return rows.map(row => `
     <tr class="history-row" data-stream-id="${row.stream_id}" tabindex="0" title="點擊查看觀眾人數走勢">
       <td>${date(row.started_at)}</td>
       <td class="stream-title"><a href="${safe(row.stream_url || "#")}" target="_blank" rel="noreferrer" onclick="event.stopPropagation()">${row.member_name ? `<small class="stream-owner">${safe(row.member_name)}</small>` : ""}${safe(row.title)}</a></td>
@@ -60,7 +61,12 @@ function renderHistory(platform = "") {
       <td class="number">${row.peak_viewers == null ? "—" : fmt.format(row.peak_viewers)}</td>
       <td class="number">${row.average_viewers == null ? "—" : fmt.format(row.average_viewers)}</td>
       <td class="number">${fmt.format(row.snapshot_count)}</td>
-    </tr>`).join("") || `<tr><td colspan="7">此平台尚無直播資料</td></tr>`;
+    </tr>`).join("") || `<tr><td colspan="7">${safe(emptyMessage)}</td></tr>`;
+}
+
+function renderHistory(platform = "") {
+  const rows = analysis.streams.filter(x => !platform || x.platform === platform);
+  $("#history-table").innerHTML = streamRows(rows, "此平台尚無直播資料");
 }
 
 function snapshotTime(value) {
@@ -158,18 +164,25 @@ function closeStreamModal() {
 }
 
 async function init() {
+  const selectedPeriod = $("#analysis-period").value;
   const endpoint = isGroupAnalysis
-    ? `/api/groups/${encodeURIComponent(group)}/analysis`
-    : `/api/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(memberId)}`;
+    ? `/api/groups/${encodeURIComponent(group)}/analysis?period=${encodeURIComponent(selectedPeriod)}`
+    : `/api/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(memberId)}?period=${encodeURIComponent(selectedPeriod)}`;
   const response = await fetch(endpoint);
   if (!response.ok) throw new Error(isGroupAnalysis ? "找不到這個 Group" : "找不到這位成員");
   analysis = await response.json();
   const {profile, summary, streams, daily, categories, active_intervals, calendar} = analysis;
   const groupName = pretty(group);
-  if (isGroupAnalysis) document.body.classList.add("group-analysis-page");
+  if (isGroupAnalysis) {
+    document.body.classList.add("group-analysis-page");
+    $("#open-history").hidden = true;
+  } else {
+    $("#open-history").href = `/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(memberId)}/history`;
+  }
   const displayName = isGroupAnalysis ? `${groupName} 整體分析` : profile.name;
   document.title = `${displayName}｜Live Observatory`;
-  $("#group-nav").href = $("#group-link").href = $("#back-group").href = `/groups/${encodeURIComponent(group)}`;
+  $("#group-nav").href = $("#group-link").href = $("#back-group").href =
+    `/groups/${encodeURIComponent(group)}?period=${encodeURIComponent(selectedPeriod)}`;
   $("#group-link").textContent = $("#group-label").textContent = groupName;
   $("#member-crumb").textContent = $("#member-name").textContent = displayName;
   $("#member-id").textContent = isGroupAnalysis
@@ -234,6 +247,13 @@ async function init() {
 }
 
 $("#history-platform").addEventListener("change", event => renderHistory(event.target.value));
+$("#analysis-period").value = validPeriods.has(requestedPeriod) ? requestedPeriod : "1m";
+$("#analysis-period").addEventListener("change", () => {
+  $("#hour-chart").innerHTML = `<div class="empty">載入分析資料…</div>`;
+  init().catch(error => {
+    $("#hour-chart").innerHTML = `<div class="empty">${safe(error.message)}</div>`;
+  });
+});
 $("#history-table").addEventListener("click", event => {
   const row = event.target.closest("[data-stream-id]");
   if (row) openStreamModal(row.dataset.streamId);
@@ -247,7 +267,8 @@ $("#history-table").addEventListener("keydown", event => {
 });
 document.querySelectorAll("[data-close-modal]").forEach(element => element.addEventListener("click", closeStreamModal));
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape" && $("#stream-modal").classList.contains("open")) closeStreamModal();
+  if (event.key !== "Escape") return;
+  if ($("#stream-modal").classList.contains("open")) closeStreamModal();
 });
 init().catch(error => {
   $("#member-name").textContent = error.message;

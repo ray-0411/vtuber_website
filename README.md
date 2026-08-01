@@ -23,10 +23,16 @@ python app.py --database ..\yt_dlp\live_data.db
 接著在本專案根目錄執行：
 
 ```powershell
+python scripts\build_analytics_cache.py
 python app.py
 ```
 
 然後開啟 <http://127.0.0.1:8000>。
+
+也可以直接執行 `start_dashboard.bat`。它會先以原子替換方式重建
+`data/analytics_cache.db`，成功後才啟動網站。分析頁從快取讀取每場直播的
+平均、最高、snapshot 數量、分類與時間區間；只有點開單場觀看曲線時才讀取
+`live_data.db` 的原始 snapshot。快取可以隨時刪除並重新建立。
 
 目前頁面：
 
@@ -38,6 +44,13 @@ python app.py
 
 ```powershell
 python app.py --database C:\path\to\live_data.db --port 8080
+```
+
+若指定其他來源資料庫，也要用相同來源重建並指定快取：
+
+```powershell
+python scripts\build_analytics_cache.py --source C:\path\to\live_data.db --output C:\path\to\analytics_cache.db
+python app.py --database C:\path\to\live_data.db --analytics-cache C:\path\to\analytics_cache.db
 ```
 
 程式以 SQLite `mode=ro` 開啟資料庫，不會更動資料。資料庫檔案不會提交到

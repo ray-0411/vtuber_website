@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>歷史紀錄｜Live Observatory</title>
+  <link rel="stylesheet" href="/analytics.css">
+  <link rel="stylesheet" href="/navigation.css">
+  <link rel="stylesheet" href="/dashboard-theme.css">
+</head>
+<body class="member-history-page">
+  <header class="topbar">
+    <div class="nav-left">
+      <button class="menu-button" type="button" aria-label="開啟導覽選單" aria-expanded="false"><span></span></button>
+      <a class="brand" href="/"><span class="brand-mark">V</span><span>Live Observatory</span></a>
+    </div>
+    <nav><a href="/">總覽</a><a class="active" id="group-nav" href="#">Group 分析</a></nav>
+  </header>
+  <div class="drawer-overlay"></div>
+  <aside class="nav-drawer" aria-label="網站導覽">
+    <div class="drawer-head"><strong>Explore</strong><button class="drawer-close" type="button" aria-label="關閉選單">×</button></div>
+    <a class="drawer-home" href="/"><span>直播總覽</span><span>⌂</span></a>
+    <div class="drawer-section-title">GROUP ANALYTICS</div>
+    <div class="drawer-groups"><div class="drawer-loading">開啟後載入 Group…</div></div>
+    <div class="drawer-foot">LIVE OBSERVATORY</div>
+  </aside>
+  <main>
+    <div class="crumbs"><a href="/">首頁</a><span>/</span><a id="group-link" href="#">Group</a><span>/</span><a id="member-link" href="#">成員</a><span>/</span><span>歷史紀錄</span></div>
+    <section class="history-page-hero">
+      <div>
+        <p class="eyebrow">MONTHLY BROADCAST ARCHIVE</p>
+        <h1><span id="history-member-name">讀取中…</span>的歷史紀錄</h1>
+        <p>依月份查看開台月曆與每場直播資料。</p>
+      </div>
+      <div class="month-controls">
+        <button id="history-prev-month" type="button" aria-label="上一個月">←</button>
+        <input id="history-month" type="month" aria-label="選擇月份">
+        <button id="history-next-month" type="button" aria-label="下一個月">→</button>
+      </div>
+    </section>
+    <div class="history-month-summary" id="history-month-summary">正在讀取歷史資料…</div>
+    <section class="history-page-grid">
+      <article class="panel history-calendar-panel">
+        <div class="panel-head">
+          <div><p class="eyebrow">BROADCAST CALENDAR</p><h2>開台月曆</h2></div>
+          <span class="calendar-legend"><i class="youtube"></i>YT <i class="twitch"></i>TW <i class="dual"></i>雙平台</span>
+        </div>
+        <div class="broadcast-calendar history-calendar" id="history-calendar"></div>
+      </article>
+      <article class="history history-page-table">
+        <div class="section-head">
+          <div><p class="eyebrow">MONTHLY BROADCAST DATA</p><h2>直播資料</h2></div>
+          <select id="history-month-platform"><option value="">所有平台</option><option value="youtube">YouTube</option><option value="twitch">Twitch</option></select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>日期</th><th>直播標題</th><th>分類</th><th>平台</th><th class="number">最高觀眾</th><th class="number">平均觀眾</th><th class="number">快照</th></tr></thead>
+            <tbody id="history-month-table"><tr><td colspan="7">載入中…</td></tr></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+  <div class="stream-modal" id="stream-modal" aria-hidden="true">
+    <div class="stream-modal-backdrop" data-close-modal></div>
+    <section class="stream-modal-panel" role="dialog" aria-modal="true" aria-labelledby="stream-modal-title">
+      <button class="stream-modal-close" type="button" data-close-modal aria-label="關閉">×</button>
+      <div class="stream-modal-head">
+        <p class="eyebrow">VIEWER SNAPSHOTS</p>
+        <h2 id="stream-modal-title">直播觀眾走勢</h2>
+        <div id="stream-modal-meta"></div>
+      </div>
+      <div class="viewer-chart" id="viewer-chart"><div class="empty">載入中…</div></div>
+      <div class="stream-modal-stats" id="stream-modal-stats"></div>
+    </section>
+  </div>
+  <footer><a id="back-member" href="#">← 回到個人分析</a><span>Live Observatory · Monthly Archive</span></footer>
+  <script src="/navigation.js"></script>
+  <script src="/history.js?v=2"></script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import calendar as month_calendar
 import json
 import mimetypes
 import os
@@ -12,7 +13,8 @@ from urllib.parse import parse_qs, urlparse
 
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_DATABASE = ROOT / "data" / "live_data.db"
+DEFAULT_DATABASE = ROOT / "data" / "merged_live_data.db"
+DEFAULT_ANALYTICS_CACHE = ROOT / "data" / "merged_analytics_cache.db"
 STATIC_DIR = ROOT / "static"
 
 
@@ -73,8 +75,13 @@ def build_time_analytics(stream_rows):
         while cursor <= final_interval and len(touched_intervals) < 48:
             touched_intervals.add(cursor.hour * 60 + cursor.minute)
             cursor += timedelta(minutes=30)
-        for minute in touched_intervals:
-            interval_counts[minute][platform] += 1
+        include_in_intervals = (
+            "include_in_intervals" not in row.keys()
+            or row["include_in_intervals"]
+        )
+        if include_in_intervals:
+            for minute in touched_intervals:
+                interval_counts[minute][platform] += 1
 
         first_day = (started_at - timedelta(hours=12)).date()
         last_day = (ended_at - timedelta(hours=12)).date()
@@ -97,14 +104,20 @@ def build_time_analytics(stream_rows):
 
 
 class DashboardRepository:
-    def __init__(self, database: Path):
+    def __init__(self, database: Path, analytics_cache: Path | None = None):
         self.database = database
+        self.analytics_cache = analytics_cache
 
     def connect(self):
         connection = sqlite3.connect(
             f"file:{self.database.as_posix()}?mode=ro", uri=True, timeout=5
         )
         connection.row_factory = sqlite3.Row
+        if self.analytics_cache is not None:
+            connection.execute(
+                "ATTACH DATABASE ? AS analytics",
+                (f"file:{self.analytics_cache.as_posix()}?mode=ro",),
+            )
         connection.execute("PRAGMA query_only = ON")
         return connection
 
@@ -210,8 +223,23 @@ class DashboardRepository:
             ).fetchall()
         return [dict(row) for row in rows]
 
-    def group_members(self, group_name):
+    def group_members(self, group_name, period="1m"):
+        period_modifiers = {
+            "1m": "-1 month",
+            "3m": "-3 months",
+            "6m": "-6 months",
+            "1y": "-1 year",
+            "all": None,
+        }
+        if period not in period_modifiers:
+            raise ValueError("Invalid analysis period")
         with self.connect() as db:
+            cutoff = None
+            if period_modifiers[period] is not None:
+                cutoff = db.execute(
+                    "SELECT date('now', 'localtime', ?)",
+                    (period_modifiers[period],),
+                ).fetchone()[0]
             exists = db.execute(
                 "SELECT COUNT(*) FROM streamer WHERE group_name = ?", (group_name,)
             ).fetchone()[0]
@@ -220,14 +248,9 @@ class DashboardRepository:
             rows = db.execute(
                 """
                 WITH per_stream AS (
-                  SELECT st.stream_id, st.vtuber_id, st.platform,
-                         COALESCE(st.started_at, st.first_seen_at) AS started_at,
-                         MAX(ss.viewer_count) AS peak_viewers,
-                         CASE WHEN MAX(ss.viewer_count) > 0
-                              THEN AVG(ss.viewer_count) END AS average_viewers
-                  FROM stream st
-                  LEFT JOIN stream_snapshot ss ON ss.stream_id = st.stream_id
-                  GROUP BY st.stream_id
+                  SELECT stream_id, vtuber_id, platform, started_at,
+                         peak_viewers, average_viewers
+                  FROM analytics.stream_stats
                 ),
                 live_status AS (
                   SELECT vtuber_id, MAX(is_live) AS is_live,
@@ -237,14 +260,24 @@ class DashboardRepository:
                 )
                 SELECT s.vtuber_id, s.name, s.group_name, s.youtube_url,
                        s.twitch_url, s.enabled, s.display_order,
-                       COUNT(ps.stream_id) AS stream_count,
-                       SUM(CASE WHEN ps.platform = 'youtube' THEN 1 ELSE 0 END) AS youtube_count,
-                       SUM(CASE WHEN ps.platform = 'twitch' THEN 1 ELSE 0 END) AS twitch_count,
-                       MAX(ps.peak_viewers) AS peak_viewers,
-                       CAST(AVG(ps.peak_viewers) AS INTEGER) AS average_peak_viewers,
+                       COUNT(CASE WHEN (:cutoff IS NULL OR ps.started_at >= :cutoff)
+                                  THEN ps.stream_id END) AS stream_count,
+                       SUM(CASE WHEN ps.platform = 'youtube'
+                                  AND (:cutoff IS NULL OR ps.started_at >= :cutoff)
+                                THEN 1 ELSE 0 END) AS youtube_count,
+                       SUM(CASE WHEN ps.platform = 'twitch'
+                                  AND (:cutoff IS NULL OR ps.started_at >= :cutoff)
+                                THEN 1 ELSE 0 END) AS twitch_count,
+                       MAX(CASE WHEN (:cutoff IS NULL OR ps.started_at >= :cutoff)
+                                THEN ps.peak_viewers END) AS peak_viewers,
+                       CAST(AVG(CASE WHEN (:cutoff IS NULL OR ps.started_at >= :cutoff)
+                                     THEN ps.peak_viewers END) AS INTEGER)
+                         AS average_peak_viewers,
                        ROUND(AVG(CASE WHEN ps.platform = 'youtube'
+                                       AND (:cutoff IS NULL OR ps.started_at >= :cutoff)
                                       THEN ps.average_viewers END), 1) AS youtube_average_viewers,
                        ROUND(AVG(CASE WHEN ps.platform = 'twitch'
+                                       AND (:cutoff IS NULL OR ps.started_at >= :cutoff)
                                       THEN ps.average_viewers END), 1) AS twitch_average_viewers,
                        MIN(ps.started_at) AS first_stream_at,
                        MAX(ps.started_at) AS latest_stream_at,
@@ -253,11 +286,11 @@ class DashboardRepository:
                 FROM streamer s
                 LEFT JOIN per_stream ps ON ps.vtuber_id = s.vtuber_id
                 LEFT JOIN live_status cls ON cls.vtuber_id = s.vtuber_id
-                WHERE s.group_name = ?
+                WHERE s.group_name = :group_name
                 GROUP BY s.vtuber_id
                 ORDER BY COALESCE(s.display_order, 999999), s.name
                 """,
-                (group_name,),
+                {"group_name": group_name, "cutoff": cutoff},
             ).fetchall()
         return [self._clean(row) for row in rows]
 
@@ -291,7 +324,16 @@ class DashboardRepository:
             ).fetchall()
         return [self._clean(row) for row in rows]
 
-    def member_analysis(self, group_name, vtuber_id):
+    def member_analysis(self, group_name, vtuber_id, period="1m"):
+        period_modifiers = {
+            "1m": "-1 month",
+            "3m": "-3 months",
+            "6m": "-6 months",
+            "1y": "-1 year",
+            "all": None,
+        }
+        if period not in period_modifiers:
+            raise ValueError("Invalid analysis period")
         with self.connect() as db:
             profile = db.execute(
                 """
@@ -308,21 +350,30 @@ class DashboardRepository:
             if profile is None:
                 return None
 
+            latest_stream_at = db.execute(
+                """
+                SELECT MAX(COALESCE(started_at, first_seen_at))
+                FROM stream
+                WHERE vtuber_id = ?
+                """,
+                (vtuber_id,),
+            ).fetchone()[0]
+            cutoff = None
+            if period_modifiers[period] is not None:
+                cutoff = db.execute(
+                    "SELECT date('now', 'localtime', ?)",
+                    (period_modifiers[period],),
+                ).fetchone()[0]
+
             summary = db.execute(
                 """
                 WITH per_stream AS (
-                  SELECT st.stream_id, st.platform,
-                         COALESCE(st.started_at, st.first_seen_at) AS started_at,
-                         MAX(ss.viewer_count) AS peak_viewers,
-                         CASE WHEN MAX(ss.viewer_count) > 0
-                              THEN AVG(ss.viewer_count) END AS average_viewers,
-                         COUNT(ss.snapshot_id) AS snapshots,
-                         MIN(ss.captured_at) AS first_capture,
-                         MAX(ss.captured_at) AS last_capture
-                  FROM stream st
-                  LEFT JOIN stream_snapshot ss ON ss.stream_id = st.stream_id
-                  WHERE st.vtuber_id = ?
-                  GROUP BY st.stream_id
+                  SELECT stream_id, platform, started_at, peak_viewers,
+                         average_viewers, snapshot_count AS snapshots,
+                         first_capture, last_capture
+                  FROM analytics.stream_stats
+                  WHERE vtuber_id = ?
+                    AND (? IS NULL OR started_at >= ?)
                 )
                 SELECT COUNT(*) AS stream_count,
                        SUM(CASE WHEN platform = 'youtube' THEN 1 ELSE 0 END) AS youtube_count,
@@ -345,43 +396,18 @@ class DashboardRepository:
                        ), 1) AS observed_hours
                 FROM per_stream
                 """,
-                (vtuber_id,),
+                (vtuber_id, cutoff, cutoff),
             ).fetchone()
 
             streams = db.execute(
                 """
-                SELECT st.stream_id, st.platform, st.stream_url,
-                       COALESCE(
-                         (SELECT title FROM stream_title
-                          WHERE title_id = (
-                            SELECT ss.title_id FROM stream_snapshot ss
-                            WHERE ss.stream_id = st.stream_id AND ss.title_id IS NOT NULL
-                            ORDER BY ss.snapshot_id DESC LIMIT 1
-                          )),
-                         st.title, '未提供標題'
-                       ) AS title,
-                       COALESCE(
-                         (SELECT category FROM stream_category
-                          WHERE category_id = (
-                            SELECT ss.category_id FROM stream_snapshot ss
-                            WHERE ss.stream_id = st.stream_id AND ss.category_id IS NOT NULL
-                            ORDER BY ss.snapshot_id DESC LIMIT 1
-                          )),
-                         st.category
-                       ) AS category,
-                       COALESCE(st.started_at, st.first_seen_at) AS started_at,
-                       st.ended_at, MAX(ss.viewer_count) AS peak_viewers,
-                       CASE WHEN MAX(ss.viewer_count) > 0
-                            THEN CAST(AVG(ss.viewer_count) AS INTEGER)
-                            END AS average_viewers,
-                       COUNT(ss.snapshot_id) AS snapshot_count,
-                       MIN(ss.captured_at) AS first_capture,
-                       MAX(ss.captured_at) AS last_capture
-                FROM stream st
-                LEFT JOIN stream_snapshot ss ON ss.stream_id = st.stream_id
-                WHERE st.vtuber_id = ?
-                GROUP BY st.stream_id
-                ORDER BY COALESCE(st.started_at, st.first_seen_at) DESC
+                SELECT stream_id, platform, stream_url, title, category,
+                       started_at, ended_at, peak_viewers,
+                       CAST(average_viewers AS INTEGER) AS average_viewers,
+                       snapshot_count, first_capture, last_capture
+                FROM analytics.stream_stats
+                WHERE vtuber_id = ?
+                ORDER BY started_at DESC
                 LIMIT 50
                 """,
                 (vtuber_id,),
@@ -389,12 +415,11 @@ class DashboardRepository:
 
             daily = db.execute(
                 """
-                SELECT substr(COALESCE(st.started_at, st.first_seen_at), 1, 10) AS day,
-                       COUNT(DISTINCT st.stream_id) AS streams,
-                       MAX(ss.viewer_count) AS peak_viewers
-                FROM stream st
-                LEFT JOIN stream_snapshot ss ON ss.stream_id = st.stream_id
-                WHERE st.vtuber_id = ?
+                SELECT substr(started_at, 1, 10) AS day,
+                       COUNT(*) AS streams,
+                       MAX(peak_viewers) AS peak_viewers
+                FROM analytics.stream_stats
+                WHERE vtuber_id = ?
                 GROUP BY day
                 ORDER BY day
                 """,
@@ -404,17 +429,10 @@ class DashboardRepository:
             categories = db.execute(
                 """
                 WITH stream_categories AS (
-                  SELECT st.stream_id,
-                         COALESCE(
-                           (SELECT sc.category
-                            FROM stream_snapshot ss
-                            JOIN stream_category sc ON sc.category_id = ss.category_id
-                            WHERE ss.stream_id = st.stream_id
-                            ORDER BY ss.snapshot_id DESC LIMIT 1),
-                           st.category
-                         ) AS category
-                  FROM stream st
-                  WHERE st.vtuber_id = ? AND st.platform = 'twitch'
+                  SELECT stream_id, category
+                  FROM analytics.stream_stats
+                  WHERE vtuber_id = ? AND platform = 'twitch'
+                    AND (? IS NULL OR started_at >= ?)
                 )
                 SELECT category, COUNT(*) AS stream_count
                 FROM stream_categories
@@ -423,23 +441,14 @@ class DashboardRepository:
                 ORDER BY stream_count DESC, category
                 LIMIT 6
                 """,
-                (vtuber_id,),
+                (vtuber_id, cutoff, cutoff),
             ).fetchall()
 
             calendar_streams = db.execute(
                 """
-                SELECT st.stream_id, st.platform,
-                       COALESCE(st.started_at, st.first_seen_at) AS started_at,
-                       COALESCE(
-                         st.ended_at,
-                         MAX(ss.captured_at),
-                         st.last_seen_at,
-                         st.first_seen_at
-                       ) AS observed_end_at
-                FROM stream st
-                LEFT JOIN stream_snapshot ss ON ss.stream_id = st.stream_id
-                WHERE st.vtuber_id = ?
-                GROUP BY st.stream_id
+                SELECT stream_id, platform, started_at, observed_end_at
+                FROM analytics.stream_stats
+                WHERE vtuber_id = ?
                 """,
                 (vtuber_id,),
             ).fetchall()
@@ -480,7 +489,8 @@ class DashboardRepository:
             while cursor <= final_interval and len(touched_intervals) < 48:
                 touched_intervals.add(cursor.hour * 60 + cursor.minute)
                 cursor += timedelta(minutes=30)
-            if row["platform"] in {"youtube", "twitch"}:
+            within_period = cutoff is None or row["started_at"] >= cutoff
+            if within_period and row["platform"] in {"youtube", "twitch"}:
                 for minute in touched_intervals:
                     active_interval_counts[minute][row["platform"]] += 1
             first_day = (started_at - timedelta(hours=12)).date()
@@ -517,6 +527,11 @@ class DashboardRepository:
             "categories": [self._clean(row) for row in categories],
             "active_intervals": active_intervals,
             "calendar": calendar,
+            "period": {
+                "value": period,
+                "cutoff": cutoff,
+                "latest_stream_at": latest_stream_at,
+            },
         }
 
     def stream_viewer_history(self, stream_id):
@@ -524,11 +539,14 @@ class DashboardRepository:
             stream = db.execute(
                 """
                 SELECT st.stream_id, st.vtuber_id, s.name, s.group_name,
-                       st.platform, st.stream_url, st.title,
+                       st.platform, st.stream_url,
+                       COALESCE(stats.title, st.title, '未提供標題') AS title,
+                       COALESCE(stats.category, st.category) AS category,
                        COALESCE(st.started_at, st.first_seen_at) AS started_at,
-                       st.ended_at
+                       st.ended_at, stats.observed_end_at
                 FROM stream st
                 JOIN streamer s ON s.vtuber_id = st.vtuber_id
+                LEFT JOIN analytics.stream_stats stats USING (stream_id)
                 WHERE st.stream_id = ?
                 """,
                 (stream_id,),
@@ -544,13 +562,111 @@ class DashboardRepository:
                 """,
                 (stream_id,),
             ).fetchall()
-        return {
-            "stream": self._clean(stream),
-            "snapshots": [dict(row) for row in snapshots],
-        }
+            return {
+                "stream": self._clean(stream),
+                "snapshots": [dict(row) for row in snapshots],
+            }
 
-    def group_analysis(self, group_name):
+    def member_month_history(self, group_name, vtuber_id, month=None):
         with self.connect() as db:
+            profile = db.execute(
+                """
+                SELECT vtuber_id, name, group_name
+                FROM streamer
+                WHERE group_name = ? AND vtuber_id = ?
+                """,
+                (group_name, vtuber_id),
+            ).fetchone()
+            if profile is None:
+                return None
+
+            available = db.execute(
+                """
+                SELECT MIN(substr(day.broadcast_day, 1, 7)),
+                       MAX(substr(day.broadcast_day, 1, 7))
+                FROM analytics.stream_calendar_day day
+                JOIN analytics.stream_stats stats USING (stream_id)
+                WHERE stats.vtuber_id = ?
+                """,
+                (vtuber_id,),
+            ).fetchone()
+            first_month, last_month = available
+            selected_month = month or last_month or datetime.now().strftime("%Y-%m")
+            try:
+                selected_date = datetime.strptime(selected_month, "%Y-%m")
+            except ValueError as exc:
+                raise ValueError("Month must use YYYY-MM format") from exc
+            if selected_date.strftime("%Y-%m") != selected_month:
+                raise ValueError("Month must use YYYY-MM format")
+
+            year, month_number = selected_date.year, selected_date.month
+            day_count = month_calendar.monthrange(year, month_number)[1]
+            month_start = f"{selected_month}-01"
+            month_end = f"{selected_month}-{day_count:02d}"
+            counted_days = {
+                row["day"]: {"youtube": row["youtube"], "twitch": row["twitch"]}
+                for row in db.execute(
+                    """
+                    SELECT day.broadcast_day AS day,
+                           SUM(CASE WHEN stats.platform = 'youtube' THEN 1 ELSE 0 END)
+                             AS youtube,
+                           SUM(CASE WHEN stats.platform = 'twitch' THEN 1 ELSE 0 END)
+                             AS twitch
+                    FROM analytics.stream_calendar_day day
+                    JOIN analytics.stream_stats stats USING (stream_id)
+                    WHERE stats.vtuber_id = ?
+                      AND day.broadcast_day BETWEEN ? AND ?
+                    GROUP BY day.broadcast_day
+                    """,
+                    (vtuber_id, month_start, month_end),
+                ).fetchall()
+            }
+            days = []
+            for day_number in range(1, day_count + 1):
+                day = f"{selected_month}-{day_number:02d}"
+                values = counted_days.get(day, {"youtube": 0, "twitch": 0})
+                days.append({"day": day, **values})
+
+            streams = db.execute(
+                """
+                SELECT DISTINCT stats.stream_id, stats.platform, stats.stream_url,
+                       stats.title, stats.category, stats.started_at, stats.ended_at,
+                       stats.peak_viewers,
+                       CAST(stats.average_viewers AS INTEGER) AS average_viewers,
+                       stats.snapshot_count
+                FROM analytics.stream_stats stats
+                JOIN analytics.stream_calendar_day day USING (stream_id)
+                WHERE stats.vtuber_id = ?
+                  AND day.broadcast_day BETWEEN ? AND ?
+                ORDER BY stats.started_at DESC
+                """,
+                (vtuber_id, month_start, month_end),
+            ).fetchall()
+            return {
+                "profile": self._clean(profile),
+                "month": selected_month,
+                "available": {"first": first_month, "last": last_month},
+                "calendar": days,
+                "streams": [self._clean(row) for row in streams],
+            }
+
+    def group_analysis(self, group_name, period="1m"):
+        period_modifiers = {
+            "1m": "-1 month",
+            "3m": "-3 months",
+            "6m": "-6 months",
+            "1y": "-1 year",
+            "all": None,
+        }
+        if period not in period_modifiers:
+            raise ValueError("Invalid analysis period")
+        with self.connect() as db:
+            cutoff = None
+            if period_modifiers[period] is not None:
+                cutoff = db.execute(
+                    "SELECT date('now', 'localtime', ?)",
+                    (period_modifiers[period],),
+                ).fetchone()[0]
             group_row = db.execute(
                 """
                 SELECT group_name AS name, group_name,
@@ -588,19 +704,12 @@ class DashboardRepository:
             summary = db.execute(
                 """
                 WITH per_stream AS (
-                  SELECT st.stream_id, st.vtuber_id, st.platform,
-                         COALESCE(st.started_at, st.first_seen_at) AS started_at,
-                         MAX(ss.viewer_count) AS peak_viewers,
-                         CASE WHEN MAX(ss.viewer_count) > 0
-                              THEN AVG(ss.viewer_count) END AS average_viewers,
-                         COUNT(ss.snapshot_id) AS snapshots,
-                         MIN(ss.captured_at) AS first_capture,
-                         MAX(ss.captured_at) AS last_capture
-                  FROM stream st
-                  JOIN streamer s ON s.vtuber_id = st.vtuber_id
-                  LEFT JOIN stream_snapshot ss ON ss.stream_id = st.stream_id
-                  WHERE s.group_name = ?
-                  GROUP BY st.stream_id
+                  SELECT stream_id, vtuber_id, platform, started_at,
+                         peak_viewers, average_viewers,
+                         snapshot_count AS snapshots, first_capture, last_capture
+                  FROM analytics.stream_stats
+                  WHERE group_name = ?
+                    AND (? IS NULL OR started_at >= ?)
                 ),
                 per_member AS (
                   SELECT vtuber_id,
@@ -630,81 +739,43 @@ class DashboardRepository:
                        ), 1) AS observed_hours
                 FROM per_stream
                 """,
-                (group_name,),
+                (group_name, cutoff, cutoff),
             ).fetchone()
             streams = db.execute(
                 """
-                WITH stream_stats AS (
-                  SELECT stream_id, MAX(viewer_count) AS peak_viewers,
-                         CASE WHEN MAX(viewer_count) > 0
-                              THEN CAST(AVG(viewer_count) AS INTEGER)
-                              END AS average_viewers,
-                         COUNT(*) AS snapshot_count,
-                         MAX(snapshot_id) AS latest_snapshot_id
-                  FROM stream_snapshot
-                  GROUP BY stream_id
-                )
-                SELECT st.stream_id, st.vtuber_id, s.name AS member_name,
-                       st.platform, st.stream_url,
-                       COALESCE(title.title, st.title, '未提供標題') AS title,
-                       COALESCE(category.category, st.category) AS category,
-                       COALESCE(st.started_at, st.first_seen_at) AS started_at,
-                       st.ended_at, stats.peak_viewers,
-                       stats.average_viewers,
-                       COALESCE(stats.snapshot_count, 0) AS snapshot_count
-                FROM stream st
-                JOIN streamer s ON s.vtuber_id = st.vtuber_id
-                LEFT JOIN stream_stats stats ON stats.stream_id = st.stream_id
-                LEFT JOIN stream_snapshot latest
-                       ON latest.snapshot_id = stats.latest_snapshot_id
-                LEFT JOIN stream_title title ON title.title_id = latest.title_id
-                LEFT JOIN stream_category category
-                       ON category.category_id = latest.category_id
-                WHERE s.group_name = ?
-                ORDER BY COALESCE(st.started_at, st.first_seen_at) DESC
+                SELECT stream_id, vtuber_id, member_name, platform, stream_url,
+                       title, category, started_at, ended_at, peak_viewers,
+                       CAST(average_viewers AS INTEGER) AS average_viewers,
+                       snapshot_count
+                FROM analytics.stream_stats
+                WHERE group_name = ?
+                ORDER BY started_at DESC
                 LIMIT 50
                 """,
                 (group_name,),
             ).fetchall()
             categories = db.execute(
                 """
-                WITH latest_snapshots AS (
-                  SELECT stream_id, MAX(snapshot_id) AS latest_snapshot_id
-                  FROM stream_snapshot
-                  GROUP BY stream_id
-                ),
-                stream_categories AS (
-                  SELECT st.stream_id, COALESCE(sc.category, st.category) AS category
-                  FROM stream st
-                  JOIN streamer s ON s.vtuber_id = st.vtuber_id
-                  LEFT JOIN latest_snapshots latest ON latest.stream_id = st.stream_id
-                  LEFT JOIN stream_snapshot ss
-                         ON ss.snapshot_id = latest.latest_snapshot_id
-                  LEFT JOIN stream_category sc ON sc.category_id = ss.category_id
-                  WHERE s.group_name = ? AND st.platform = 'twitch'
-                )
                 SELECT category, COUNT(*) AS stream_count
-                FROM stream_categories
-                WHERE category IS NOT NULL AND trim(category) <> ''
+                FROM analytics.stream_stats
+                WHERE group_name = ? AND platform = 'twitch'
+                  AND (? IS NULL OR started_at >= ?)
+                  AND category IS NOT NULL AND trim(category) <> ''
                 GROUP BY category
                 ORDER BY stream_count DESC, category
                 LIMIT 6
                 """,
-                (group_name,),
+                (group_name, cutoff, cutoff),
             ).fetchall()
             time_streams = db.execute(
                 """
-                SELECT st.stream_id, st.platform,
-                       COALESCE(st.started_at, st.first_seen_at) AS started_at,
-                       COALESCE(st.ended_at, MAX(ss.captured_at),
-                                st.last_seen_at, st.first_seen_at) AS observed_end_at
-                FROM stream st
-                JOIN streamer s ON s.vtuber_id = st.vtuber_id
-                LEFT JOIN stream_snapshot ss ON ss.stream_id = st.stream_id
-                WHERE s.group_name = ?
-                GROUP BY st.stream_id
+                SELECT stream_id, platform, started_at, observed_end_at,
+                       CASE WHEN ? IS NULL OR started_at >= ?
+                            THEN 1 ELSE 0 END AS include_in_intervals
+                FROM analytics.stream_stats
+                WHERE group_name = ?
                 """,
-                (group_name,),
+                (cutoff, cutoff, group_name),
             ).fetchall()
 
         calendar, active_intervals = build_time_analytics(time_streams)
@@ -716,6 +787,10 @@ class DashboardRepository:
             "categories": [self._clean(row) for row in categories],
             "active_intervals": active_intervals,
             "calendar": calendar,
+            "period": {
+                "value": period,
+                "cutoff": cutoff,
+            },
         }
 
     def health(self):
@@ -797,7 +872,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if parts == ["api", "groups"]:
                 return self.send_json(self.repository.groups())
             if len(parts) == 3 and parts[:2] == ["api", "groups"]:
-                data = self.repository.group_members(parts[2])
+                params = parse_qs(parsed.query)
+                data = self.repository.group_members(
+                    parts[2],
+                    period=params.get("period", ["1m"])[0],
+                )
                 return self.send_json(
                     data if data is not None else {"error": "Group not found"},
                     200 if data is not None else 404,
@@ -807,9 +886,32 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 and parts[:2] == ["api", "groups"]
                 and parts[3] == "analysis"
             ):
-                data = self.repository.group_analysis(parts[2])
+                params = parse_qs(parsed.query)
+                data = self.repository.group_analysis(
+                    parts[2],
+                    period=params.get("period", ["1m"])[0],
+                )
                 return self.send_json(
                     data if data is not None else {"error": "Group not found"},
+                    200 if data is not None else 404,
+                )
+            if (
+                len(parts) == 6
+                and parts[:2] == ["api", "groups"]
+                and parts[3] == "members"
+                and parts[5] == "history"
+            ):
+                params = parse_qs(parsed.query)
+                try:
+                    data = self.repository.member_month_history(
+                        parts[2],
+                        parts[4],
+                        month=params.get("month", [None])[0],
+                    )
+                except ValueError as exc:
+                    return self.send_json({"error": str(exc)}, 400)
+                return self.send_json(
+                    data if data is not None else {"error": "Member not found"},
                     200 if data is not None else 404,
                 )
             if (
@@ -817,7 +919,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 and parts[:2] == ["api", "groups"]
                 and parts[3] == "members"
             ):
-                data = self.repository.member_analysis(parts[2], parts[4])
+                params = parse_qs(parsed.query)
+                data = self.repository.member_analysis(
+                    parts[2],
+                    parts[4],
+                    period=params.get("period", ["1m"])[0],
+                )
                 return self.send_json(
                     data if data is not None else {"error": "Member not found"},
                     200 if data is not None else 404,
@@ -830,10 +937,19 @@ class DashboardHandler(BaseHTTPRequestHandler):
         parts = [part for part in request_path.split("/") if part]
         if len(parts) == 2 and parts[0] == "groups":
             relative = "group.html"
+        elif len(parts) == 2 and parts[0] == "streams":
+            relative = "stream.html"
         elif len(parts) == 3 and parts[0] == "groups" and parts[2] == "analysis":
             relative = "member.html"
         elif len(parts) == 4 and parts[0] == "groups" and parts[2] == "members":
             relative = "member.html"
+        elif (
+            len(parts) == 5
+            and parts[0] == "groups"
+            and parts[2] == "members"
+            and parts[4] == "history"
+        ):
+            relative = "history.html"
         else:
             relative = "index.html" if request_path == "/" else request_path.lstrip("/")
         path = (STATIC_DIR / relative).resolve()
@@ -856,7 +972,14 @@ def main():
     parser.add_argument(
         "--database",
         default=os.environ.get("LIVE_DATA_DB", str(DEFAULT_DATABASE)),
-        help="Path to live_data.db (or set LIVE_DATA_DB)",
+        help="Path to a dashboard database (or set LIVE_DATA_DB)",
+    )
+    parser.add_argument(
+        "--analytics-cache",
+        default=os.environ.get(
+            "ANALYTICS_CACHE_DB", str(DEFAULT_ANALYTICS_CACHE)
+        ),
+        help="Path to analytics_cache.db (or set ANALYTICS_CACHE_DB)",
     )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
@@ -865,10 +988,17 @@ def main():
     database = Path(args.database).resolve()
     if not database.is_file():
         raise SystemExit(f"Database not found: {database}")
-    DashboardHandler.repository = DashboardRepository(database)
+    analytics_cache = Path(args.analytics_cache).resolve()
+    if not analytics_cache.is_file():
+        raise SystemExit(
+            f"Analytics cache not found: {analytics_cache}\n"
+            "Run: python scripts/build_analytics_cache.py"
+        )
+    DashboardHandler.repository = DashboardRepository(database, analytics_cache)
     server = ThreadingHTTPServer((args.host, args.port), DashboardHandler)
     print(f"Dashboard: http://{args.host}:{args.port}")
     print(f"Database:  {database} (read-only)")
+    print(f"Analytics: {analytics_cache} (read-only)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -2,6 +2,9 @@ const $ = s => document.querySelector(s);
 const fmt = new Intl.NumberFormat("zh-TW");
 const parts = location.pathname.split("/").filter(Boolean);
 const group = parts[1] || "meridian";
+const validPeriods = new Set(["1m", "3m", "6m", "1y", "all"]);
+const requestedPeriod = new URLSearchParams(location.search).get("period");
+let selectedPeriod = validPeriods.has(requestedPeriod) ? requestedPeriod : "1m";
 let members = [];
 
 const safe = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -25,7 +28,7 @@ function render() {
     return (a.display_order ?? 99999) - (b.display_order ?? 99999);
   });
   $("#member-list").innerHTML = rows.map(row => `
-    <a class="member-row" href="/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(row.vtuber_id)}">
+    <a class="member-row" href="/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(row.vtuber_id)}?period=${encodeURIComponent(selectedPeriod)}">
       <span class="member-avatar">${safe(row.name?.slice(0,1) || "V")}</span>
       <span class="member-name"><strong>${safe(row.name)}</strong><small>${safe(row.vtuber_id)}${row.enabled ? "" : " · 未啟用"}</small></span>
       <span class="member-stat dual-stat">
@@ -44,13 +47,14 @@ function render() {
 }
 
 async function init() {
+  selectedPeriod = $("#group-period").value;
   const title = pretty(group);
   document.title = `${title} 成員｜Live Observatory`;
   $("#group-title").textContent = title;
   $("#crumb-group").textContent = title;
   $("#seal-letter").textContent = title[0];
-  $("#group-analysis-link").href = `/groups/${encodeURIComponent(group)}/analysis`;
-  const response = await fetch(`/api/groups/${encodeURIComponent(group)}`);
+  $("#group-analysis-link").href = `/groups/${encodeURIComponent(group)}/analysis?period=${encodeURIComponent(selectedPeriod)}`;
+  const response = await fetch(`/api/groups/${encodeURIComponent(group)}?period=${encodeURIComponent(selectedPeriod)}`);
   if (!response.ok) throw new Error("找不到這個 Group");
   members = await response.json();
   $("#member-count").textContent = fmt.format(members.length);
@@ -71,4 +75,12 @@ async function init() {
 
 $("#member-search").addEventListener("input", render);
 $("#member-sort").addEventListener("change", render);
+$("#group-period").value = selectedPeriod;
+$("#group-period").addEventListener("change", () => {
+  selectedPeriod = $("#group-period").value;
+  $("#member-list").innerHTML = `<div class="empty">載入分析資料…</div>`;
+  init().catch(error => {
+    $("#member-list").innerHTML = `<div class="empty">${safe(error.message)}</div>`;
+  });
+});
 init().catch(error => $("#member-list").innerHTML = `<div class="empty">${safe(error.message)}</div>`);
