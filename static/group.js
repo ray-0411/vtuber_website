@@ -29,7 +29,7 @@ function render() {
   });
   $("#member-list").innerHTML = rows.map(row => `
     <a class="member-row" href="/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(row.vtuber_id)}?period=${encodeURIComponent(selectedPeriod)}">
-      <span class="member-avatar">${safe(row.name?.slice(0,1) || "V")}</span>
+      <span class="member-avatar"><span>${safe(row.name?.slice(0,1) || "V")}</span>${row.youtube_avatar_url || row.twitch_avatar_url ? `<img src="${safe(row.youtube_avatar_url || row.twitch_avatar_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</span>
       <span class="member-name"><strong>${safe(row.name)}</strong><small>${safe(row.vtuber_id)}${row.enabled ? "" : " · 未啟用"}</small></span>
       <span class="member-stat dual-stat">
         <small>直播場數</small>
@@ -48,11 +48,20 @@ function render() {
 
 async function init() {
   selectedPeriod = $("#group-period").value;
+  const isOtherGroup = group === "other";
   const title = pretty(group);
   document.title = `${title} 成員｜Live Observatory`;
   $("#group-title").textContent = title;
   $("#crumb-group").textContent = title;
   $("#seal-letter").textContent = title[0];
+  $("#group-nav").href = `/groups/${encodeURIComponent(group)}`;
+  if (isOtherGroup) {
+    document.body.classList.add("other-group-page");
+    $("#group-special-label").hidden = false;
+    $("#group-description").textContent = "未歸入特定團體的創作者集合。成員依平均觀眾排序，僅供個別頻道資料查閱。";
+    $("#group-average-card").hidden = true;
+    $("#member-sort").value = "average";
+  }
   $("#group-analysis-link").href = `/groups/${encodeURIComponent(group)}/analysis?period=${encodeURIComponent(selectedPeriod)}`;
   const response = await fetch(`/api/groups/${encodeURIComponent(group)}?period=${encodeURIComponent(selectedPeriod)}`);
   if (!response.ok) throw new Error("找不到這個 Group");

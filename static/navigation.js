@@ -23,9 +23,9 @@
       if (!response.ok) throw new Error("讀取失敗");
       const groups = await response.json();
       list.innerHTML = groups.map(group => `
-        <a class="drawer-group ${current === group.group_name ? "active" : ""}" href="/groups/${encodeURIComponent(group.group_name)}">
+        <a class="drawer-group ${current === group.group_name ? "active" : ""} ${group.group_name === "other" ? "special" : ""}" href="/groups/${encodeURIComponent(group.group_name)}">
           <span class="drawer-group-mark">${safe(pretty(group.group_name)[0])}</span>
-          <span><strong>${safe(pretty(group.group_name))}</strong><small>${group.member_count} 位成員 · ${group.stream_count} 場直播</small></span>
+          <span><strong>${safe(pretty(group.group_name))}${group.group_name === "other" ? `<em class="drawer-group-badge">特殊分類</em>` : ""}</strong><small>${group.member_count} 位成員 · ${group.stream_count} 場直播</small></span>
           <small>${group.has_live ? "● LIVE" : "›"}</small>
         </a>`).join("");
     } catch {

@@ -188,7 +188,8 @@ async function init() {
   $("#member-id").textContent = isGroupAnalysis
     ? `${fmt.format(profile.enabled_count)} available / ${fmt.format(profile.member_count)} 位成員`
     : `@${profile.vtuber_id}${profile.enabled ? "" : " · 目前未啟用追蹤"}`;
-  $("#profile-avatar").textContent = displayName?.slice(0, 1) || "V";
+  const avatarUrl = profile.youtube_avatar_url || profile.twitch_avatar_url;
+  $("#profile-avatar").innerHTML = `<span>${safe(displayName?.slice(0, 1) || "V")}</span>${avatarUrl ? `<img src="${safe(avatarUrl)}" alt="${safe(displayName)}" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}`;
   if (profile.is_live) {
     $("#live-status").className = "live";
     $("#live-status").textContent = `LIVE · ${fmt.format(profile.viewers_now || 0)}`;
@@ -197,6 +198,10 @@ async function init() {
     profile.youtube_url && `<a href="${safe(profile.youtube_url)}" target="_blank" rel="noreferrer">YouTube ↗</a>`,
     profile.twitch_url && `<a href="${safe(profile.twitch_url)}" target="_blank" rel="noreferrer">Twitch ↗</a>`,
     profile.live_url && `<a href="${safe(profile.live_url)}" target="_blank" rel="noreferrer">觀看直播 ↗</a>`
+  ].filter(Boolean).join("");
+  $("#profile-audience").innerHTML = [
+    profile.youtube_url && `<span><b>YT</b>${profile.youtube_subscribers == null ? "尚無資料" : `${fmt.format(profile.youtube_subscribers)} 訂閱`}</span>`,
+    profile.twitch_url && `<span><b>TW</b>${profile.twitch_followers == null ? "尚無資料" : `${fmt.format(profile.twitch_followers)} 追隨`}</span>`
   ].filter(Boolean).join("");
   $("#period").textContent = summary.first_stream_at ? `${date(summary.first_stream_at)} — ${date(summary.latest_stream_at)}` : "尚無直播資料";
   $("#total-streams").textContent = fmt.format(summary.stream_count);

@@ -68,3 +68,30 @@ python app.py --database C:\path\to\live_data.db --analytics-cache C:\path\to\an
 
 之後改用雲端資料庫時，可保留這組 API 回應格式，只替換
 `DashboardRepository` 的查詢實作。
+
+## Group 排序
+
+左側導覽會顯示 `streamer` 資料表中的所有 Group，並依
+`group_settings.display_order` 由小到大排序。第一次使用或新增 Group 後執行：
+
+```powershell
+python scripts\create_group_settings.py --database data\merged_live_data.db
+```
+
+接著可直接在 SQLite 編輯排序值，例如：
+
+```sql
+UPDATE group_settings SET display_order = 1 WHERE group_name = 'meridian';
+UPDATE group_settings SET display_order = 2 WHERE group_name = 'thebox';
+```
+
+填寫 `display_order` 的 Group 會優先顯示並依數字排序；未填寫的 Group 會接在
+後方，依 `group_name` 字母排序。新增的 Group 可重新執行上述腳本補進設定表，
+既有排序不會被覆蓋。
+
+## 更新合併資料庫
+
+當 `data/live_data.db` 或 `data/streamer_audience.db` 更新後，可直接雙擊
+`refresh_merged_data.bat`。它會重新合併 `legacy_live_data.db`、`live_data.db` 與
+訂閱／追隨資料，保留 `group_settings` 的手動排序，並重建
+`merged_analytics_cache.db`。完成後重新啟動網站即可使用最新資料。

@@ -7,6 +7,31 @@
 - 第二位：新增功能
 - 第三位：修正與小幅調整
 
+## [1.2.0] - 2026-08-02
+
+新增多 Group 導覽設定、Audience 資料整合與一鍵更新流程。
+
+### Group 導覽與排序
+
+- 左側導覽改為讀取資料庫中的全部 Group，不再限於 Meridian。
+- 新增 `group_settings` 資料表，可用 `display_order` 手動設定優先順序。
+- 有排序值的 Group 優先顯示，其餘 Group 接在後方並依名稱排列。
+- `other` 加入特殊分類標示，隱藏全體平均觀眾並預設依成員平均觀眾排序。
+
+### Audience 與頭像
+
+- 合併 `streamer_audience.db` 的 YouTube 訂閱數及 Twitch 追隨數。
+- 個人分析頁顯示各平台 Audience 數字；來源缺少數字時顯示尚無資料。
+- Group 成員列表及個人分析頁支援 YouTube／Twitch 頭像。
+- 頭像優先使用 YouTube，其次 Twitch，載入失敗時退回文字首字。
+- 合併資料庫不再保留 Dashboard 未使用的 YouTube API、WebSub 與 build info 輔助表。
+
+### 更新流程
+
+- 新增 `refresh_merged_data.bat`，可一次合併直播、舊版及 Audience 資料並重建分析快取。
+- 重新合併時保留 `group_settings` 的手動排序與備註。
+- 新增 Group 設定同步工具，支援依成員人數或平均觀眾產生初始排序。
+
 ## [1.1.0] - 2026-08-01
 
 新增歷史資料合併、分析快取與月份直播紀錄功能。

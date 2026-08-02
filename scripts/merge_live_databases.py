@@ -24,6 +24,15 @@ CORE_TABLES = (
     "working",
 )
 
+AUXILIARY_TABLES = (
+    "audience_build_info",
+    "youtube_api_candidate",
+    "youtube_api_current_status",
+    "youtube_api_snapshot",
+    "youtube_websub_event",
+    "youtube_websub_subscription",
+)
+
 
 def parse_args() -> argparse.Namespace:
     data_dir = Path(__file__).resolve().parents[1] / "data"
@@ -31,6 +40,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--current", type=Path, default=data_dir / "live_data.db")
     parser.add_argument(
         "--legacy", type=Path, default=data_dir / "legacy_live_data.db"
+    )
+    parser.add_argument(
+        "--audience", type=Path, default=data_dir / "streamer_audience.db"
     )
     parser.add_argument(
         "--output", type=Path, default=data_dir / "merged_live_data.db"
@@ -80,6 +92,65 @@ def copy_database(source: sqlite3.Connection, destination: Path) -> None:
         source.backup(target)
     finally:
         target.close()
+
+
+def read_group_settings(path: Path) -> dict[str, tuple[int | None, str | None]]:
+    if not path.is_file():
+        return {}
+    db = sqlite3.connect(database_uri(path), uri=True)
+    try:
+        exists = db.execute(
+            """
+            SELECT COUNT(*) FROM sqlite_master
+            WHERE type = 'table' AND name = 'group_settings'
+            """
+        ).fetchone()[0]
+        if not exists:
+            return {}
+        return {
+            group_name: (display_order, note)
+            for group_name, display_order, note in db.execute(
+                "SELECT group_name, display_order, note FROM group_settings"
+            )
+        }
+    finally:
+        db.close()
+
+
+def synchronize_group_settings(
+    target: sqlite3.Connection,
+    preserved: dict[str, tuple[int | None, str | None]],
+) -> None:
+    target.execute(
+        """
+        CREATE TABLE IF NOT EXISTS group_settings (
+            group_name TEXT PRIMARY KEY,
+            display_order INTEGER,
+            note TEXT
+        )
+        """
+    )
+    target.execute(
+        """
+        INSERT OR IGNORE INTO group_settings (group_name)
+        SELECT DISTINCT group_name
+        FROM streamer
+        WHERE group_name IS NOT NULL AND trim(group_name) <> ''
+        """
+    )
+    target.executemany(
+        """
+        INSERT INTO group_settings (group_name, display_order, note)
+        VALUES (?, ?, ?)
+        ON CONFLICT(group_name) DO UPDATE SET
+            display_order = excluded.display_order,
+            note = excluded.note
+        """,
+        [
+            (group_name, display_order, note)
+            for group_name, (display_order, note) in preserved.items()
+        ],
+    )
 
 
 def get_columns(db: sqlite3.Connection, table: str) -> list[str]:
@@ -319,6 +390,51 @@ def merge_working(target: sqlite3.Connection, legacy: sqlite3.Connection) -> int
     return len(rows)
 
 
+def replace_audience_data(
+    target: sqlite3.Connection, audience: sqlite3.Connection
+) -> dict[str, int]:
+    tables = ("streamer_audience",)
+    for table in tables:
+        sql = table_sql(audience, table)
+        if not sql:
+            raise RuntimeError(f"audience database is missing table: {table}")
+        target.execute(f'DROP TABLE IF EXISTS "{table}"')
+        target.execute(sql)
+        columns = get_columns(audience, table)
+        names = ", ".join(f'"{column}"' for column in columns)
+        placeholders = ", ".join("?" for _ in columns)
+        rows = audience.execute(f'SELECT {names} FROM "{table}"').fetchall()
+        target.executemany(
+            f'INSERT INTO "{table}" ({names}) VALUES ({placeholders})', rows
+        )
+    for _, index_sql in audience.execute(
+        """
+        SELECT name, sql FROM sqlite_master
+        WHERE type = 'index' AND tbl_name = 'streamer_audience'
+          AND sql IS NOT NULL
+        ORDER BY name
+        """
+    ):
+        target.execute(index_sql)
+    return {
+        table: target.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
+        for table in tables
+    }
+
+
+def drop_auxiliary_tables(target: sqlite3.Connection) -> list[str]:
+    removed: list[str] = []
+    for table in AUXILIARY_TABLES:
+        exists = target.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?",
+            (table,),
+        ).fetchone()[0]
+        if exists:
+            target.execute(f'DROP TABLE "{table}"')
+            removed.append(table)
+    return removed
+
+
 def counts(db: sqlite3.Connection) -> dict[str, int]:
     return {
         table: db.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
@@ -330,17 +446,27 @@ def main() -> int:
     args = parse_args()
     current_path = args.current.resolve()
     legacy_path = args.legacy.resolve()
+    audience_path = args.audience.resolve()
     output_path = args.output.resolve()
     report_path = args.report.resolve()
-    for path, label in ((current_path, "current"), (legacy_path, "legacy")):
+    for path, label in (
+        (current_path, "current"),
+        (legacy_path, "legacy"),
+        (audience_path, "audience"),
+    ):
         if not path.is_file():
             raise FileNotFoundError(f"{label} database not found: {path}")
-    if len({current_path, legacy_path, output_path}) != 3:
-        raise ValueError("current, legacy, and output databases must be different")
+    if len({current_path, legacy_path, audience_path, output_path}) != 4:
+        raise ValueError(
+            "current, legacy, audience, and output databases must be different"
+        )
     if output_path.exists() and not args.overwrite:
         raise FileExistsError(
             f"output already exists: {output_path} (use --overwrite to replace it)"
         )
+    preserved_group_settings = (
+        read_group_settings(output_path) if output_path.exists() else {}
+    )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -350,6 +476,7 @@ def main() -> int:
 
     current = sqlite3.connect(database_uri(current_path), uri=True)
     legacy = sqlite3.connect(database_uri(legacy_path), uri=True)
+    audience = sqlite3.connect(database_uri(audience_path), uri=True)
     try:
         validate_inputs(current, legacy)
         source_counts = {"current": counts(current), "legacy": counts(legacy)}
@@ -361,7 +488,9 @@ def main() -> int:
     target.execute("PRAGMA foreign_keys=ON")
     try:
         target.execute("BEGIN IMMEDIATE")
+        removed_auxiliary_tables = drop_auxiliary_tables(target)
         added_streamers = copy_missing_streamers(target, legacy)
+        synchronize_group_settings(target, preserved_group_settings)
         title_mapping = merge_lookup_table(
             target, legacy, "stream_title", "title_id", "title"
         )
@@ -384,6 +513,7 @@ def main() -> int:
             tags_mapping,
         )
         inserted_working = merge_working(target, legacy)
+        audience_counts = replace_audience_data(target, audience)
         target.commit()
 
         integrity = target.execute("PRAGMA integrity_check").fetchone()[0]
@@ -403,16 +533,20 @@ def main() -> int:
         report = {
             "current": str(current_path),
             "legacy": str(legacy_path),
+            "audience": str(audience_path),
             "output": str(output_path),
             "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
             "source_counts": source_counts,
             "merge": {
+                "group_settings_preserved": len(preserved_group_settings),
+                "auxiliary_tables_removed": removed_auxiliary_tables,
                 "streamers_inserted": added_streamers,
                 "legacy_streams_inserted": inserted_streams,
                 "legacy_streams_matched": len(matches),
                 "legacy_snapshots_inserted": inserted_snapshots,
                 "overlapping_legacy_snapshots_skipped": skipped_snapshots,
                 "legacy_working_rows_inserted": inserted_working,
+                "audience_rows": audience_counts,
                 "matched_streams": matches,
             },
             "output_counts": output_counts,
@@ -425,12 +559,14 @@ def main() -> int:
         target.rollback()
         target.close()
         legacy.close()
+        audience.close()
         if temporary.exists():
             temporary.unlink()
         raise
     else:
         target.close()
         legacy.close()
+        audience.close()
 
     os.replace(temporary, output_path)
     report_path.write_text(

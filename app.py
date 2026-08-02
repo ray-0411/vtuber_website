@@ -260,6 +260,12 @@ class DashboardRepository:
                 )
                 SELECT s.vtuber_id, s.name, s.group_name, s.youtube_url,
                        s.twitch_url, s.enabled, s.display_order,
+                       audience.youtube_subscribers,
+                       audience.youtube_count_at,
+                       audience.youtube_avatar_url,
+                       audience.twitch_followers,
+                       audience.twitch_count_at,
+                       audience.twitch_avatar_url,
                        COUNT(CASE WHEN (:cutoff IS NULL OR ps.started_at >= :cutoff)
                                   THEN ps.stream_id END) AS stream_count,
                        SUM(CASE WHEN ps.platform = 'youtube'
@@ -286,6 +292,8 @@ class DashboardRepository:
                 FROM streamer s
                 LEFT JOIN per_stream ps ON ps.vtuber_id = s.vtuber_id
                 LEFT JOIN live_status cls ON cls.vtuber_id = s.vtuber_id
+                LEFT JOIN streamer_audience audience
+                       ON audience.vtuber_id = s.vtuber_id
                 WHERE s.group_name = :group_name
                 GROUP BY s.vtuber_id
                 ORDER BY COALESCE(s.display_order, 999999), s.name
@@ -296,13 +304,39 @@ class DashboardRepository:
 
     def groups(self):
         with self.connect() as db:
-            rows = db.execute(
+            has_group_settings = db.execute(
                 """
+                SELECT COUNT(*) FROM sqlite_master
+                WHERE type = 'table' AND name = 'group_settings'
+                """
+            ).fetchone()[0]
+            settings_join = (
+                "LEFT JOIN group_settings settings ON settings.group_name = ms.group_name"
+                if has_group_settings
+                else ""
+            )
+            display_order = (
+                "settings.display_order AS display_order"
+                if has_group_settings
+                else "NULL AS display_order"
+            )
+            ordering = (
+                "CASE WHEN settings.display_order IS NULL THEN 1 ELSE 0 END, "
+                "settings.display_order, ms.group_name"
+                if has_group_settings
+                else "ms.group_name"
+            )
+            rows = db.execute(
+                f"""
                 WITH member_stats AS (
                   SELECT s.vtuber_id, s.group_name, s.enabled,
+                         audience.youtube_subscribers,
+                         audience.twitch_followers,
                          COUNT(DISTINCT st.stream_id) AS stream_count
                   FROM streamer s
                   LEFT JOIN stream st ON st.vtuber_id = s.vtuber_id
+                  LEFT JOIN streamer_audience audience
+                         ON audience.vtuber_id = s.vtuber_id
                   GROUP BY s.vtuber_id
                 ),
                 live_status AS (
@@ -311,15 +345,18 @@ class DashboardRepository:
                   GROUP BY vtuber_id
                 )
                 SELECT ms.group_name,
+                       {display_order},
                        COUNT(*) AS member_count,
                        SUM(CASE WHEN ms.enabled = 1 THEN 1 ELSE 0 END) AS enabled_count,
+                       SUM(COALESCE(ms.youtube_subscribers, 0)) AS youtube_subscribers,
+                       SUM(COALESCE(ms.twitch_followers, 0)) AS twitch_followers,
                        SUM(ms.stream_count) AS stream_count,
                        COALESCE(MAX(ls.is_live), 0) AS has_live
                 FROM member_stats ms
                 LEFT JOIN live_status ls ON ls.vtuber_id = ms.vtuber_id
-                WHERE ms.group_name = 'meridian'
+                {settings_join}
                 GROUP BY ms.group_name
-                ORDER BY ms.group_name
+                ORDER BY {ordering}
                 """
             ).fetchall()
         return [self._clean(row) for row in rows]
@@ -339,9 +376,17 @@ class DashboardRepository:
                 """
                 SELECT s.*, COALESCE(MAX(cls.is_live), 0) AS is_live,
                        MAX(CASE WHEN cls.is_live = 1 THEN cls.viewer_count END) AS viewers_now,
-                       MAX(CASE WHEN cls.is_live = 1 THEN cls.stream_url END) AS live_url
+                       MAX(CASE WHEN cls.is_live = 1 THEN cls.stream_url END) AS live_url,
+                       audience.youtube_subscribers,
+                       audience.youtube_count_at,
+                       audience.youtube_avatar_url,
+                       audience.twitch_followers,
+                       audience.twitch_count_at,
+                       audience.twitch_avatar_url
                 FROM streamer s
                 LEFT JOIN current_live_status cls ON cls.vtuber_id = s.vtuber_id
+                LEFT JOIN streamer_audience audience
+                       ON audience.vtuber_id = s.vtuber_id
                 WHERE s.group_name = ? AND s.vtuber_id = ?
                 GROUP BY s.vtuber_id
                 """,
