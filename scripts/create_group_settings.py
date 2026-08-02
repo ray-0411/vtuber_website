@@ -96,6 +96,7 @@ def main() -> int:
                            AVG(CASE WHEN platform = 'twitch'
                                     THEN average_viewers END) AS twitch_average
                     FROM analytics.stream_stats
+                    WHERE snapshot_count > 3
                     GROUP BY group_name, vtuber_id
                 ),
                 per_member AS (

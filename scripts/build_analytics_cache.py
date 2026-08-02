@@ -115,7 +115,7 @@ def main() -> int:
             WITH snapshot_stats AS (
                 SELECT stream_id,
                        MAX(viewer_count) AS peak_viewers,
-                       CASE WHEN MAX(viewer_count) > 0
+                       CASE WHEN COUNT(*) > 3 AND MAX(viewer_count) > 0
                             THEN AVG(viewer_count) END AS average_viewers,
                        COUNT(*) AS snapshot_count,
                        MIN(captured_at) AS first_capture,

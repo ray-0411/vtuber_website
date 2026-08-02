@@ -160,19 +160,137 @@ class DashboardRepository:
             rows = db.execute(
                 """
                 SELECT cls.vtuber_id, s.name, s.group_name, cls.platform,
-                       cls.viewer_count, cls.stream_url, cls.started_at,
+                       cls.viewer_count, cls.stream_url,
+                       (SELECT MIN(snapshot.captured_at)
+                          FROM stream_snapshot snapshot
+                         WHERE snapshot.stream_id = cls.stream_id)
+                         AS started_at,
                        COALESCE(st.title, stream.title, '未提供標題') AS title,
-                       COALESCE(sc.category, stream.category) AS category
+                       COALESCE(sc.category, stream.category) AS category,
+                       audience.youtube_avatar_url,
+                       audience.twitch_avatar_url
                 FROM current_live_status cls
                 JOIN streamer s ON s.vtuber_id = cls.vtuber_id
                 LEFT JOIN stream ON stream.stream_id = cls.stream_id
                 LEFT JOIN stream_title st ON st.title_id = cls.title_id
                 LEFT JOIN stream_category sc ON sc.category_id = cls.category_id
+                LEFT JOIN streamer_audience audience
+                       ON audience.vtuber_id = cls.vtuber_id
                 WHERE cls.is_live = 1
                 ORDER BY cls.viewer_count DESC, s.name
                 """
             ).fetchall()
         return [self._clean(row) for row in rows]
+
+    def weekly_ranking(self, limit=10):
+        today = datetime.now().date()
+        this_week_start = today - timedelta(days=today.weekday())
+        week_start = this_week_start - timedelta(days=7)
+        week_end = this_week_start
+        with self.connect() as db:
+            rows = db.execute(
+                """
+                SELECT stats.stream_id, stats.vtuber_id,
+                       stats.member_name AS name, stats.group_name,
+                       stats.platform, stats.stream_url, stats.title,
+                       stats.category, stats.started_at,
+                       CAST(ROUND(stats.average_viewers) AS INTEGER)
+                         AS average_viewers,
+                       stats.peak_viewers,
+                       audience.youtube_avatar_url,
+                       audience.twitch_avatar_url
+                FROM analytics.stream_stats stats
+                LEFT JOIN streamer_audience audience
+                       ON audience.vtuber_id = stats.vtuber_id
+                WHERE stats.started_at >= ? AND stats.started_at < ?
+                  AND stats.average_viewers IS NOT NULL
+                  AND stats.snapshot_count >= 5
+                ORDER BY stats.platform,
+                         stats.average_viewers DESC,
+                         stats.peak_viewers DESC,
+                         stats.started_at DESC
+                """,
+                (
+                    week_start.isoformat(),
+                    week_end.isoformat(),
+                ),
+            ).fetchall()
+        ranking_limit = min(max(limit, 1), 50)
+        platform_rankings = {}
+        for platform in ("youtube", "twitch"):
+            platform_rows = [
+                self._clean(row) for row in rows if row["platform"] == platform
+            ]
+            platform_rankings[platform] = {}
+            for metric in ("average_viewers", "peak_viewers"):
+                ranked_rows = sorted(
+                    platform_rows,
+                    key=lambda row: (
+                        row.get(metric) or 0,
+                        row.get("average_viewers") or 0,
+                        row.get("peak_viewers") or 0,
+                        row.get("started_at") or "",
+                    ),
+                    reverse=True,
+                )
+                unique_rows = []
+                seen_vtubers = set()
+                for row in ranked_rows:
+                    if row["vtuber_id"] in seen_vtubers:
+                        continue
+                    seen_vtubers.add(row["vtuber_id"])
+                    unique_rows.append(row)
+                    if len(unique_rows) == ranking_limit:
+                        break
+                platform_rankings[platform][metric] = {
+                    "streams": ranked_rows[:ranking_limit],
+                    "unique_streams": unique_rows,
+                }
+        return {
+            "week_start": week_start.isoformat(),
+            "week_end": (week_end - timedelta(days=1)).isoformat(),
+            "platforms": platform_rankings,
+        }
+
+    def monthly_average_ranking(self, limit=10):
+        today = datetime.now().date()
+        month_end = today.replace(day=1)
+        month_start = (month_end - timedelta(days=1)).replace(day=1)
+        with self.connect() as db:
+            rows = db.execute(
+                """
+                SELECT stats.vtuber_id, stats.member_name AS name,
+                       stats.group_name, stats.platform,
+                       CAST(ROUND(AVG(stats.average_viewers)) AS INTEGER)
+                         AS average_viewers,
+                       COUNT(*) AS stream_count,
+                       audience.youtube_avatar_url,
+                       audience.twitch_avatar_url
+                FROM analytics.stream_stats stats
+                LEFT JOIN streamer_audience audience
+                       ON audience.vtuber_id = stats.vtuber_id
+                WHERE stats.started_at >= ? AND stats.started_at < ?
+                  AND stats.average_viewers IS NOT NULL
+                  AND stats.snapshot_count > 3
+                GROUP BY stats.vtuber_id, stats.member_name,
+                         stats.group_name, stats.platform
+                ORDER BY stats.platform, average_viewers DESC,
+                         stream_count DESC, stats.member_name
+                """,
+                (month_start.isoformat(), month_end.isoformat()),
+            ).fetchall()
+        ranking_limit = min(max(limit, 1), 50)
+        cleaned = [self._clean(row) for row in rows]
+        return {
+            "month_start": month_start.isoformat(),
+            "month_end": (month_end - timedelta(days=1)).isoformat(),
+            "platforms": {
+                platform: [
+                    row for row in cleaned if row["platform"] == platform
+                ][:ranking_limit]
+                for platform in ("youtube", "twitch")
+            },
+        }
 
     def recent_streams(self, limit=30, platform=None, query=None):
         where, values = [], []
@@ -249,7 +367,7 @@ class DashboardRepository:
                 """
                 WITH per_stream AS (
                   SELECT stream_id, vtuber_id, platform, started_at,
-                         peak_viewers, average_viewers
+                         peak_viewers, average_viewers, snapshot_count
                   FROM analytics.stream_stats
                 ),
                 live_status AS (
@@ -276,13 +394,16 @@ class DashboardRepository:
                                 THEN 1 ELSE 0 END) AS twitch_count,
                        MAX(CASE WHEN (:cutoff IS NULL OR ps.started_at >= :cutoff)
                                 THEN ps.peak_viewers END) AS peak_viewers,
-                       CAST(AVG(CASE WHEN (:cutoff IS NULL OR ps.started_at >= :cutoff)
+                       CAST(AVG(CASE WHEN ps.snapshot_count > 3
+                                      AND (:cutoff IS NULL OR ps.started_at >= :cutoff)
                                      THEN ps.peak_viewers END) AS INTEGER)
                          AS average_peak_viewers,
                        ROUND(AVG(CASE WHEN ps.platform = 'youtube'
+                                       AND ps.snapshot_count > 3
                                        AND (:cutoff IS NULL OR ps.started_at >= :cutoff)
                                       THEN ps.average_viewers END), 1) AS youtube_average_viewers,
                        ROUND(AVG(CASE WHEN ps.platform = 'twitch'
+                                       AND ps.snapshot_count > 3
                                        AND (:cutoff IS NULL OR ps.started_at >= :cutoff)
                                       THEN ps.average_viewers END), 1) AS twitch_average_viewers,
                        MIN(ps.started_at) AS first_stream_at,
@@ -426,10 +547,13 @@ class DashboardRepository:
                        MAX(peak_viewers) AS peak_viewers,
                        MAX(CASE WHEN platform = 'youtube' THEN peak_viewers END) AS youtube_peak_viewers,
                        MAX(CASE WHEN platform = 'twitch' THEN peak_viewers END) AS twitch_peak_viewers,
-                       CAST(AVG(peak_viewers) AS INTEGER) AS average_peak_viewers,
+                       CAST(AVG(CASE WHEN snapshots > 3 THEN peak_viewers END) AS INTEGER)
+                         AS average_peak_viewers,
                        ROUND(AVG(CASE WHEN platform = 'youtube'
+                                      AND snapshots > 3
                                       THEN average_viewers END), 1) AS youtube_average_viewers,
                        ROUND(AVG(CASE WHEN platform = 'twitch'
+                                      AND snapshots > 3
                                       THEN average_viewers END), 1) AS twitch_average_viewers,
                        SUM(snapshots) AS snapshot_count,
                        MIN(started_at) AS first_stream_at,
@@ -759,8 +883,10 @@ class DashboardRepository:
                 per_member AS (
                   SELECT vtuber_id,
                          AVG(CASE WHEN platform = 'youtube'
+                                  AND snapshots > 3
                                   THEN average_viewers END) AS youtube_average_viewers,
                          AVG(CASE WHEN platform = 'twitch'
+                                  AND snapshots > 3
                                   THEN average_viewers END) AS twitch_average_viewers
                   FROM per_stream
                   GROUP BY vtuber_id
@@ -885,6 +1011,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return self.send_json(self.repository.overview())
             if parsed.path == "/api/live":
                 return self.send_json(self.repository.live())
+            if parsed.path == "/api/rankings/weekly":
+                return self.send_json(self.repository.weekly_ranking())
+            if parsed.path == "/api/rankings/monthly-average":
+                return self.send_json(self.repository.monthly_average_ranking())
             if parsed.path == "/api/activity":
                 return self.send_json(self.repository.activity())
             if parsed.path == "/api/health":

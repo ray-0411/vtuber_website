@@ -6,7 +6,7 @@
   <title>VTuber Live Observatory</title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/navigation.css">
-  <link rel="stylesheet" href="/dashboard-theme.css">
+  <link rel="stylesheet" href="/dashboard-theme.css?v=4">
 </head>
 <body>
   <header class="topbar">
@@ -44,26 +44,48 @@
 
     <section class="section">
       <div class="section-title">
-        <div><p class="eyebrow">ON AIR</p><h2>正在直播</h2></div>
-        <span class="live-pill"><i></i> LIVE</span>
+        <div><p class="eyebrow">WEEKLY RANKING</p><h2 id="ranking-heading">上週平均觀看 Top 10</h2></div>
+        <div class="ranking-controls">
+          <div class="ranking-metric" role="group" aria-label="排行榜依據">
+            <button class="active" type="button" data-ranking-metric="average_viewers">平均觀看</button>
+            <button type="button" data-ranking-metric="peak_viewers">最高觀看</button>
+          </div>
+          <label class="ranking-unique"><input type="checkbox" id="ranking-allow-duplicates"> 允許同一人重複出現</label>
+          <span class="ranking-period" id="ranking-period">讀取統計期間…</span>
+        </div>
       </div>
-      <div class="live-grid" id="live-grid"><div class="empty">讀取直播狀態中…</div></div>
-    </section>
-
-    <section class="split">
-      <article class="panel chart-panel">
-        <div class="panel-head"><div><p class="eyebrow">LAST 14 DAYS</p><h2>直播活動</h2></div></div>
-        <div id="activity-chart" class="chart"></div>
-      </article>
-      <article class="panel health-panel">
-        <div class="panel-head"><div><p class="eyebrow">COLLECTOR</p><h2>抓取器狀態</h2></div><span id="health-badge"></span></div>
-        <div id="health-list" class="health-list"></div>
-      </article>
+      <div class="platform-rankings">
+        <section class="platform-ranking">
+          <h3><span class="badge youtube">YouTube</span> 上週 Top 10</h3>
+          <div class="weekly-ranking" id="youtube-ranking"><div class="empty">讀取排行榜中…</div></div>
+        </section>
+        <section class="platform-ranking">
+          <h3><span class="badge twitch">Twitch</span> 上週 Top 10</h3>
+          <div class="weekly-ranking" id="twitch-ranking"><div class="empty">讀取排行榜中…</div></div>
+        </section>
+      </div>
     </section>
 
     <section class="section">
       <div class="section-title">
-        <div><p class="eyebrow">ARCHIVE</p><h2>近期直播紀錄</h2></div>
+        <div><p class="eyebrow">MONTHLY RANKING</p><h2>月平均觀眾 Top 10</h2></div>
+        <span class="ranking-period" id="monthly-ranking-period">讀取統計期間…</span>
+      </div>
+      <div class="platform-rankings">
+        <section class="platform-ranking">
+          <h3><span class="badge youtube">YouTube</span> 月平均 Top 10</h3>
+          <div class="weekly-ranking" id="youtube-monthly-ranking"><div class="empty">讀取排行榜中…</div></div>
+        </section>
+        <section class="platform-ranking">
+          <h3><span class="badge twitch">Twitch</span> 月平均 Top 10</h3>
+          <div class="weekly-ranking" id="twitch-monthly-ranking"><div class="empty">讀取排行榜中…</div></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <div><p class="eyebrow">LIVE NOW</p><h2>即時直播</h2></div>
         <div class="filters">
           <input id="search" type="search" placeholder="搜尋頻道或標題">
           <select id="platform"><option value="">所有平台</option><option value="youtube">YouTube</option><option value="twitch">Twitch</option></select>
@@ -71,7 +93,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>頻道</th><th>直播標題</th><th>平台</th><th>開始時間</th><th class="number">最高觀眾</th></tr></thead>
+          <thead><tr><th>頻道</th><th>直播標題</th><th>平台</th><th>開始時間</th><th class="number">即時觀眾</th></tr></thead>
           <tbody id="stream-table"></tbody>
         </table>
       </div>
@@ -80,6 +102,6 @@
 
   <footer><span>Live Observatory · local preview</span><span>資料來源：live_data.db</span></footer>
   <script src="/navigation.js?v=2"></script>
-  <script src="/app.js"></script>
+  <script src="/app.js?v=11"></script>
 </body>
 </html>
