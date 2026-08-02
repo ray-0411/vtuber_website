@@ -133,7 +133,6 @@ class DashboardRepository:
                   (SELECT COUNT(*) FROM streamer WHERE enabled = 1) AS streamers,
                   (SELECT COUNT(*) FROM current_live_status WHERE is_live = 1) AS live_now,
                   (SELECT COUNT(*) FROM stream) AS streams,
-                  (SELECT COUNT(*) FROM stream_snapshot) AS snapshots,
                   (SELECT COALESCE(SUM(viewer_count), 0)
                      FROM current_live_status WHERE is_live = 1) AS viewers_now
                 """
@@ -166,14 +165,12 @@ class DashboardRepository:
                          WHERE snapshot.stream_id = cls.stream_id)
                          AS started_at,
                        COALESCE(st.title, stream.title, '未提供標題') AS title,
-                       COALESCE(sc.category, stream.category) AS category,
                        audience.youtube_avatar_url,
                        audience.twitch_avatar_url
                 FROM current_live_status cls
                 JOIN streamer s ON s.vtuber_id = cls.vtuber_id
                 LEFT JOIN stream ON stream.stream_id = cls.stream_id
                 LEFT JOIN stream_title st ON st.title_id = cls.title_id
-                LEFT JOIN stream_category sc ON sc.category_id = cls.category_id
                 LEFT JOIN streamer_audience audience
                        ON audience.vtuber_id = cls.vtuber_id
                 WHERE cls.is_live = 1
@@ -190,10 +187,9 @@ class DashboardRepository:
         with self.connect() as db:
             rows = db.execute(
                 """
-                SELECT stats.stream_id, stats.vtuber_id,
-                       stats.member_name AS name, stats.group_name,
+                SELECT stats.vtuber_id, stats.member_name AS name, stats.group_name,
                        stats.platform, stats.stream_url, stats.title,
-                       stats.category, stats.started_at,
+                       stats.started_at,
                        CAST(ROUND(stats.average_viewers) AS INTEGER)
                          AS average_viewers,
                        stats.peak_viewers,
@@ -291,55 +287,6 @@ class DashboardRepository:
                 for platform in ("youtube", "twitch")
             },
         }
-
-    def recent_streams(self, limit=30, platform=None, query=None):
-        where, values = [], []
-        if platform in {"youtube", "twitch"}:
-            where.append("stream.platform = ?")
-            values.append(platform)
-        if query:
-            where.append("(s.name LIKE ? OR stream.title LIKE ? OR stream.vtuber_id LIKE ?)")
-            term = f"%{query[:80]}%"
-            values.extend([term, term, term])
-        clause = f"WHERE {' AND '.join(where)}" if where else ""
-        values.append(min(max(limit, 1), 100))
-        with self.connect() as db:
-            rows = db.execute(
-                f"""
-                SELECT stream.stream_id, stream.vtuber_id, s.name, s.group_name,
-                       stream.platform, stream.stream_url, stream.title,
-                       stream.category, stream.started_at, stream.ended_at,
-                       stream.last_seen_at,
-                       MAX(ss.viewer_count) AS peak_viewers,
-                       COUNT(ss.snapshot_id) AS snapshot_count
-                FROM stream
-                JOIN streamer s ON s.vtuber_id = stream.vtuber_id
-                LEFT JOIN stream_snapshot ss ON ss.stream_id = stream.stream_id
-                {clause}
-                GROUP BY stream.stream_id
-                ORDER BY COALESCE(stream.started_at, stream.first_seen_at) DESC
-                LIMIT ?
-                """,
-                values,
-            ).fetchall()
-        return [self._clean(row) for row in rows]
-
-    def activity(self, days=14):
-        cutoff = (datetime.now() - timedelta(days=days - 1)).strftime("%Y-%m-%d")
-        with self.connect() as db:
-            rows = db.execute(
-                """
-                SELECT substr(captured_at, 1, 10) AS day,
-                       COUNT(DISTINCT stream_id) AS streams,
-                       MAX(viewer_count) AS peak_viewers
-                FROM stream_snapshot
-                WHERE captured_at >= ?
-                GROUP BY substr(captured_at, 1, 10)
-                ORDER BY day
-                """,
-                (cutoff,),
-            ).fetchall()
-        return [dict(row) for row in rows]
 
     def group_members(self, group_name, period="1m"):
         period_modifiers = {
@@ -964,34 +911,6 @@ class DashboardRepository:
             },
         }
 
-    def health(self):
-        with self.connect() as db:
-            latest = db.execute(
-                """
-                SELECT w.*
-                FROM working w
-                JOIN (
-                  SELECT job_name, MAX(working_id) AS working_id
-                  FROM working
-                  GROUP BY job_name
-                ) latest ON latest.working_id = w.working_id
-                ORDER BY w.job_name
-                """
-            ).fetchall()
-            summary = db.execute(
-                """
-                SELECT status, COUNT(*) AS count
-                FROM working
-                WHERE started_at >= datetime('now', 'localtime', '-24 hours')
-                GROUP BY status
-                """
-            ).fetchall()
-        return {
-            "latest": [self._clean(row) for row in latest],
-            "last_24_hours": [dict(row) for row in summary],
-        }
-
-
 class DashboardHandler(BaseHTTPRequestHandler):
     repository: DashboardRepository
 
@@ -1015,20 +934,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return self.send_json(self.repository.weekly_ranking())
             if parsed.path == "/api/rankings/monthly-average":
                 return self.send_json(self.repository.monthly_average_ranking())
-            if parsed.path == "/api/activity":
-                return self.send_json(self.repository.activity())
-            if parsed.path == "/api/health":
-                return self.send_json(self.repository.health())
-            if parsed.path == "/api/streams":
-                params = parse_qs(parsed.query)
-                limit = int(params.get("limit", ["30"])[0])
-                return self.send_json(
-                    self.repository.recent_streams(
-                        limit=limit,
-                        platform=params.get("platform", [None])[0],
-                        query=params.get("q", [None])[0],
-                    )
-                )
             parts = [part for part in parsed.path.split("/") if part]
             if (
                 len(parts) == 4
@@ -1112,8 +1017,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         parts = [part for part in request_path.split("/") if part]
         if len(parts) == 2 and parts[0] == "groups":
             relative = "group.html"
-        elif len(parts) == 2 and parts[0] == "streams":
-            relative = "stream.html"
         elif len(parts) == 3 and parts[0] == "groups" and parts[2] == "analysis":
             relative = "member.html"
         elif len(parts) == 4 and parts[0] == "groups" and parts[2] == "members":

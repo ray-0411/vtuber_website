@@ -60,9 +60,10 @@ python app.py --database C:\path\to\live_data.db --analytics-cache C:\path\to\an
 
 - `GET /api/overview`：總覽數字
 - `GET /api/live`：目前直播
-- `GET /api/activity`：最近 14 日活動
-- `GET /api/streams?platform=&q=&limit=40`：直播紀錄
-- `GET /api/health`：抓取器最新狀態
+- `GET /api/rankings/weekly`：上週 YouTube／Twitch 直播排行
+- `GET /api/rankings/monthly-average`：上個完整月份平均觀眾排行
+- `GET /api/streams/<stream_id>/snapshots`：單場直播與觀看快照
+- `GET /api/groups`：Group 導覽清單
 - `GET /api/groups/<group_name>`：Group 成員與基礎統計
 - `GET /api/groups/<group_name>/members/<vtuber_id>`：成員分析與直播歷史
 
