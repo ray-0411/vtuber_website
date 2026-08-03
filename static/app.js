@@ -11,10 +11,13 @@ function dateTime(value) {
   if (!value) return "—";
   const normalized = value.includes("T") ? value : value.replace(" ", "T");
   const date = new Date(normalized.endsWith("Z") ? normalized : `${normalized}+08:00`);
-  return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat("zh-TW", {
-    month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
-    hour12: false, timeZone: "Asia/Taipei"
-  }).format(date);
+  if (Number.isNaN(date.valueOf())) return value;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit",
+    minute: "2-digit", second: "2-digit", hour12: false,
+    timeZone: "Asia/Taipei"
+  }).formatToParts(date).map(part => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
 }
 
 function safe(value) {

@@ -7,6 +7,13 @@
 - 第二位：新增功能
 - 第三位：修正與小幅調整
 
+## [1.4.3] - 2026-08-04
+
+### Fixed
+
+- Format the homepage update timestamp as `YYYY-MM-DD HH:mm:ss` in Taiwan time.
+- Bump the homepage script version so browsers do not retain the old timestamp formatter.
+
 ## [1.4.2] - 2026-08-04
 
 ### Fixed
