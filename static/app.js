@@ -12,7 +12,8 @@ function dateTime(value) {
   const normalized = value.includes("T") ? value : value.replace(" ", "T");
   const date = new Date(normalized.endsWith("Z") ? normalized : `${normalized}+08:00`);
   return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat("zh-TW", {
-    month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false
+    month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+    hour12: false, timeZone: "Asia/Taipei"
   }).format(date);
 }
 

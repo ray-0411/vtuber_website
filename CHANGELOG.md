@@ -7,6 +7,13 @@
 - 第二位：新增功能
 - 第三位：修正與小幅調整
 
+## [1.4.2] - 2026-08-04
+
+### Fixed
+
+- Display the homepage's latest-update time in Taiwan time (UTC+8) without a
+  visible timezone suffix.
+
 ## [1.4.1] - 2026-08-04
 
 ### Added
