@@ -7,6 +7,19 @@
 - 第二位：新增功能
 - 第三位：修正與小幅調整
 
+## [1.4.1] - 2026-08-04
+
+### Added
+
+- Portable collector-side toolkit for merging databases, rebuilding analytics,
+  and uploading completed data to Supabase with one BAT file.
+- Standalone dashboard-side Supabase upload BAT.
+
+### Documentation
+
+- Reworked the GitHub README around the public website, features, data flow,
+  maintenance workflow, security model, and relevant links.
+
 ## [1.4.0] - 2026-08-04
 
 Supabase-backed public dashboard and GitHub Pages deployment support.

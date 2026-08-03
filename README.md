@@ -1,108 +1,102 @@
 # VTuber Live Observatory
 
-## GitHub Pages
+台灣 VTuber 的 YouTube、Twitch 直播資料觀測網站，提供即時直播、觀看排行、
+Group 與成員分析、直播月曆及單場觀看人數變化。
 
-The `static` directory is deployed by `.github/workflows/pages.yml`. The public
-site reads only reviewed Supabase RPC functions with the publishable browser
-key in `static/supabase-config.js`; database passwords and secret/service-role
-keys must never be committed.
+## 公開網站
 
-Project Pages uses the `/vtuber_website/` base path. `static/404.html` routes
-Group, member, analysis, and history URLs to their matching static templates.
+**[開啟 VTuber Live Observatory](https://ray-0411.github.io/vtuber_website/)**
 
-以唯讀方式呈現 VTuber 直播資料的第一版檢視網頁。這是獨立專案，不依賴抓取器
-repository 的路徑或程式碼。後端採用 Python 標準函式庫，不需安裝額外套件。
+網站部署於 GitHub Pages，資料由 Supabase 的唯讀 API 提供。網站不需要登入，
+使用手機或電腦瀏覽器皆可開啟。
 
-## 啟動
+## 網站功能
 
-先準備資料庫。以下方式擇一：
+- 上週 YouTube、Twitch 平均／最高觀看人數 Top 10。
+- 上個完整月份的平均觀看人數排行。
+- 顯示目前正在直播的頻道、頭像、標題與觀看人數。
+- 依 Group 查看成員、直播次數及平台平均觀看人數。
+- 查看個別成員的直播統計、常見分類、活動時段與近期直播。
+- 依月份查看開台月曆與直播紀錄。
+- 點選直播紀錄，以彈出視窗查看該場直播的觀看人數快照曲線。
 
-1. 將相同 schema 的資料庫放在 `data/live_data.db`。
-2. 用環境變數指定外部資料庫：
+統計平均值時，快照數不超過 3 筆的直播不納入平均；週排行則要求至少 5 筆
+快照，避免觀測時間太短造成排名失真。
 
-```powershell
-$env:LIVE_DATA_DB = "C:\path\to\live_data.db"
+## 資料與架構
+
+```text
+抓取器 SQLite
+   ↓ 合併及建立分析快取
+Supabase PostgreSQL
+   ↓ 受控唯讀 RPC
+GitHub Pages 靜態網站
 ```
 
-3. 啟動時用參數指定。開發時若抓取器剛好放在相鄰目錄，可以執行：
+- `dashboard`、`analytics` 原始資料表啟用 Row Level Security。
+- 匿名訪客無法直接讀取原始資料表，只能執行公開的唯讀 RPC。
+- GitHub Pages 前端僅使用可公開的 Supabase publishable key。
+- 資料庫密碼、secret key 與本機資料庫不會提交到 Git。
+
+## 維護資料
+
+一般更新建議在抓取器電腦使用
+[`collector_supabase_tool`](collector_supabase_tool/README.md)：
+
+1. 第一次使用先執行 `setup.bat`。
+2. 抓取器完成資料更新後執行 `update_and_upload.bat`。
+3. 工具會合併資料庫、重建分析快取、上傳 Supabase 並核對筆數。
+4. 上傳完成後，公開網站重新整理即可取得新資料，不需要重新部署。
+
+Dashboard 專案內也可以分開執行：
 
 ```powershell
-python app.py --database ..\yt_dlp\live_data.db
+refresh_merged_data.bat
+upload_to_supabase.bat
 ```
 
-接著在本專案根目錄執行：
+Supabase 同步使用 Git 忽略的 `.env.supabase.local`：
+
+```dotenv
+SUPABASE_DB_URL=postgresql://...
+```
+
+此連線字串包含資料庫密碼，不可上傳或分享。
+
+## 本機預覽
+
+需要 Python 3，並先準備：
+
+- `data/merged_live_data.db`
+- `data/merged_analytics_cache.db`
+
+啟動方式：
 
 ```powershell
-python scripts\build_analytics_cache.py
 python app.py
 ```
 
-然後開啟 <http://127.0.0.1:8000>。
+或雙擊：
 
-也可以直接執行 `start_dashboard.bat`。它會先以原子替換方式重建
-`data/analytics_cache.db`，成功後才啟動網站。分析頁從快取讀取每場直播的
-平均、最高、snapshot 數量、分類與時間區間；只有點開單場觀看曲線時才讀取
-`live_data.db` 的原始 snapshot。快取可以隨時刪除並重新建立。
-
-目前頁面：
-
-- `/`：即時直播總覽
-- `/groups/meridian`：Meridian 成員列表
-- `/groups/meridian/members/<vtuber_id>`：成員個人分析與直播歷史
-
-指定其他同 schema 的 SQLite 資料庫：
-
-```powershell
-python app.py --database C:\path\to\live_data.db --port 8080
+```text
+start_dashboard.bat
 ```
 
-若指定其他來源資料庫，也要用相同來源重建並指定快取：
+接著開啟 <http://127.0.0.1:8000>。
 
-```powershell
-python scripts\build_analytics_cache.py --source C:\path\to\live_data.db --output C:\path\to\analytics_cache.db
-python app.py --database C:\path\to\live_data.db --analytics-cache C:\path\to\analytics_cache.db
+前端的 `static/supabase-config.js` 若已填入 Project URL 與 publishable key，會直接
+讀取 Supabase；將兩個值留空則使用本機 Python `/api`。
+
+## 主要目錄
+
+```text
+static/                       GitHub Pages 網頁與前端程式
+supabase/migrations/          PostgreSQL schema、RLS 與唯讀 RPC
+scripts/                      合併、分析、同步與驗證工具
+collector_supabase_tool/      可搬至抓取器端的一鍵更新工具
+.github/workflows/pages.yml   GitHub Pages 自動部署
 ```
 
-程式以 SQLite `mode=ro` 開啟資料庫，不會更動資料。資料庫檔案不會提交到
-本專案 Git。
+## 版本紀錄
 
-## API
-
-- `GET /api/overview`：總覽數字
-- `GET /api/live`：目前直播
-- `GET /api/rankings/weekly`：上週 YouTube／Twitch 直播排行
-- `GET /api/rankings/monthly-average`：上個完整月份平均觀眾排行
-- `GET /api/streams/<stream_id>/snapshots`：單場直播與觀看快照
-- `GET /api/groups`：Group 導覽清單
-- `GET /api/groups/<group_name>`：Group 成員與基礎統計
-- `GET /api/groups/<group_name>/members/<vtuber_id>`：成員分析與直播歷史
-
-之後改用雲端資料庫時，可保留這組 API 回應格式，只替換
-`DashboardRepository` 的查詢實作。
-
-## Group 排序
-
-左側導覽會顯示 `streamer` 資料表中的所有 Group，並依
-`group_settings.display_order` 由小到大排序。第一次使用或新增 Group 後執行：
-
-```powershell
-python scripts\create_group_settings.py --database data\merged_live_data.db
-```
-
-接著可直接在 SQLite 編輯排序值，例如：
-
-```sql
-UPDATE group_settings SET display_order = 1 WHERE group_name = 'meridian';
-UPDATE group_settings SET display_order = 2 WHERE group_name = 'thebox';
-```
-
-填寫 `display_order` 的 Group 會優先顯示並依數字排序；未填寫的 Group 會接在
-後方，依 `group_name` 字母排序。新增的 Group 可重新執行上述腳本補進設定表，
-既有排序不會被覆蓋。
-
-## 更新合併資料庫
-
-當 `data/live_data.db` 或 `data/streamer_audience.db` 更新後，可直接雙擊
-`refresh_merged_data.bat`。它會重新合併 `legacy_live_data.db`、`live_data.db` 與
-訂閱／追隨資料，保留 `group_settings` 的手動排序，並重建
-`merged_analytics_cache.db`。完成後重新啟動網站即可使用最新資料。
+版本更新內容請參閱 [CHANGELOG.md](CHANGELOG.md)。

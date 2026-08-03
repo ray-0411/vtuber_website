@@ -19,3 +19,6 @@ node_modules/
 .vscode/
 .DS_Store
 Thumbs.db
+
+collector_supabase_tool/data/*
+!collector_supabase_tool/data/.gitkeep
