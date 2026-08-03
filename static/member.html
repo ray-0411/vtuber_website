@@ -4,28 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>個人分析｜Live Observatory</title>
-  <link rel="stylesheet" href="/analytics.css">
-  <link rel="stylesheet" href="/navigation.css">
-  <link rel="stylesheet" href="/dashboard-theme.css">
+  <base id="site-base" href="/">
+  <script>if(location.hostname.endsWith(".github.io"))document.getElementById("site-base").href="/vtuber_website/";</script>
+  <script src="site.js?v=1"></script>
+  <link rel="stylesheet" href="analytics.css">
+  <link rel="stylesheet" href="navigation.css">
+  <link rel="stylesheet" href="dashboard-theme.css">
 </head>
 <body>
   <header class="topbar">
     <div class="nav-left">
       <button class="menu-button" type="button" aria-label="開啟導覽選單" aria-expanded="false"><span></span></button>
-      <a class="brand" href="/"><span class="brand-mark">V</span><span>Live Observatory</span></a>
+      <a class="brand" href="./"><span class="brand-mark">V</span><span>Live Observatory</span></a>
     </div>
-    <nav><a href="/">總覽</a><a class="active" id="group-nav" href="/groups/meridian">Group 分析</a></nav>
+    <nav><a href="./">總覽</a><a class="active" id="group-nav" href="#">Group 分析</a></nav>
   </header>
   <div class="drawer-overlay"></div>
   <aside class="nav-drawer" aria-label="網站導覽">
     <div class="drawer-head"><strong>Explore</strong><button class="drawer-close" type="button" aria-label="關閉選單">×</button></div>
-    <a class="drawer-home" href="/"><span>直播總覽</span><span>⌂</span></a>
+    <a class="drawer-home" href="./"><span>直播總覽</span><span>⌂</span></a>
     <div class="drawer-section-title">GROUP ANALYTICS</div>
     <div class="drawer-groups"><div class="drawer-loading">開啟後載入 Group…</div></div>
     <div class="drawer-foot">LIVE OBSERVATORY</div>
   </aside>
   <main>
-    <div class="crumbs"><a href="/">首頁</a><span>/</span><a id="group-link" href="#">Group</a><span>/</span><span id="member-crumb">成員</span></div>
+    <div class="crumbs"><a href="./">首頁</a><span>/</span><a id="group-link" href="#">Group</a><span>/</span><span id="member-crumb">成員</span></div>
     <section class="profile-hero">
       <div class="profile-avatar" id="profile-avatar">V</div>
       <div class="profile-copy">
@@ -101,7 +104,9 @@
     </section>
   </div>
   <footer><a id="back-group" href="#">← 回到成員列表</a><span>Live Observatory · Member Analytics</span></footer>
-  <script src="/navigation.js?v=2"></script>
-  <script src="/member.js?v=5"></script>
+  <script src="supabase-config.js?v=1"></script>
+  <script src="api-client.js?v=1"></script>
+  <script src="navigation.js?v=2"></script>
+  <script src="member.js?v=5"></script>
 </body>
 </html>

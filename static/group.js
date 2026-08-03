@@ -1,9 +1,9 @@
 const $ = s => document.querySelector(s);
 const fmt = new Intl.NumberFormat("zh-TW");
-const parts = location.pathname.split("/").filter(Boolean);
+const parts = dashboardRoutePath().split("/").filter(Boolean);
 const group = parts[1] || "meridian";
 const validPeriods = new Set(["1m", "3m", "6m", "1y", "all"]);
-const requestedPeriod = new URLSearchParams(location.search).get("period");
+const requestedPeriod = dashboardSearchParams().get("period");
 let selectedPeriod = validPeriods.has(requestedPeriod) ? requestedPeriod : "1m";
 let members = [];
 
@@ -28,7 +28,7 @@ function render() {
     return (a.display_order ?? 99999) - (b.display_order ?? 99999);
   });
   $("#member-list").innerHTML = rows.map(row => `
-    <a class="member-row" href="/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(row.vtuber_id)}?period=${encodeURIComponent(selectedPeriod)}">
+    <a class="member-row" href="${dashboardPath(`/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(row.vtuber_id)}?period=${encodeURIComponent(selectedPeriod)}`)}">
       <span class="member-avatar"><span>${safe(row.name?.slice(0,1) || "V")}</span>${row.youtube_avatar_url || row.twitch_avatar_url ? `<img src="${safe(row.youtube_avatar_url || row.twitch_avatar_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</span>
       <span class="member-name"><strong>${safe(row.name)}</strong><small>${safe(row.vtuber_id)}${row.enabled ? "" : " · 未啟用"}</small></span>
       <span class="member-stat dual-stat">
@@ -54,7 +54,7 @@ async function init() {
   $("#group-title").textContent = title;
   $("#crumb-group").textContent = title;
   $("#seal-letter").textContent = title[0];
-  $("#group-nav").href = `/groups/${encodeURIComponent(group)}`;
+  $("#group-nav").href = dashboardPath(`/groups/${encodeURIComponent(group)}`);
   if (isOtherGroup) {
     document.body.classList.add("other-group-page");
     $("#group-special-label").hidden = false;
@@ -62,8 +62,8 @@ async function init() {
     $("#group-average-card").hidden = true;
     $("#member-sort").value = "average";
   }
-  $("#group-analysis-link").href = `/groups/${encodeURIComponent(group)}/analysis?period=${encodeURIComponent(selectedPeriod)}`;
-  const response = await fetch(`/api/groups/${encodeURIComponent(group)}?period=${encodeURIComponent(selectedPeriod)}`);
+  $("#group-analysis-link").href = dashboardPath(`/groups/${encodeURIComponent(group)}/analysis?period=${encodeURIComponent(selectedPeriod)}`);
+  const response = await dashboardFetch(`/api/groups/${encodeURIComponent(group)}?period=${encodeURIComponent(selectedPeriod)}`);
   if (!response.ok) throw new Error("找不到這個 Group");
   members = await response.json();
   $("#member-count").textContent = fmt.format(members.length);

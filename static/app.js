@@ -2,7 +2,7 @@ const $ = (selector) => document.querySelector(selector);
 const fmt = new Intl.NumberFormat("zh-TW");
 
 async function getJSON(url) {
-  const response = await fetch(url);
+  const response = await dashboardFetch(url);
   if (!response.ok) throw new Error((await response.json()).error || response.statusText);
   return response.json();
 }
@@ -52,7 +52,7 @@ async function loadWeeklyRanking() {
     const avatarUrl = platform === "youtube"
       ? (row.youtube_avatar_url || row.twitch_avatar_url)
       : (row.twitch_avatar_url || row.youtube_avatar_url);
-    const profileUrl = `/groups/${encodeURIComponent(row.group_name)}/members/${encodeURIComponent(row.vtuber_id)}?period=1m`;
+    const profileUrl = dashboardPath(`/groups/${encodeURIComponent(row.group_name)}/members/${encodeURIComponent(row.vtuber_id)}?period=1m`);
     return `
     <article class="ranking-row rank-${index + 1}">
       <strong class="ranking-number">${index + 1}</strong>
@@ -96,7 +96,7 @@ async function loadMonthlyAverageRanking() {
       const avatarUrl = platform === "youtube"
         ? (row.youtube_avatar_url || row.twitch_avatar_url)
         : (row.twitch_avatar_url || row.youtube_avatar_url);
-      const profileUrl = `/groups/${encodeURIComponent(row.group_name)}/members/${encodeURIComponent(row.vtuber_id)}?period=1m`;
+      const profileUrl = dashboardPath(`/groups/${encodeURIComponent(row.group_name)}/members/${encodeURIComponent(row.vtuber_id)}?period=1m`);
       return `
       <article class="ranking-row rank-${index + 1}">
         <strong class="ranking-number">${index + 1}</strong>
@@ -121,7 +121,7 @@ async function loadStreams() {
     (!query || `${row.name} ${row.group_name} ${row.title}`.toLowerCase().includes(query))
   );
   $("#stream-table").innerHTML = rows.map(row => {
-    const profileUrl = `/groups/${encodeURIComponent(row.group_name)}/members/${encodeURIComponent(row.vtuber_id)}?period=1m`;
+    const profileUrl = dashboardPath(`/groups/${encodeURIComponent(row.group_name)}/members/${encodeURIComponent(row.vtuber_id)}?period=1m`);
     const avatarUrl = row.platform === "youtube"
       ? (row.youtube_avatar_url || row.twitch_avatar_url)
       : (row.twitch_avatar_url || row.youtube_avatar_url);

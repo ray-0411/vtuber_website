@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Live Observatory</title></head>
+<body><p>正在開啟頁面…</p><script>
+(() => {
+  const base = location.hostname.endsWith(".github.io") ? "/vtuber_website" : "";
+  const route = location.pathname.startsWith(base) ? location.pathname.slice(base.length) : location.pathname;
+  let page = "index.html";
+  if (/^\/groups\/[^/]+\/members\/[^/]+\/history\/?$/.test(route)) page = "history.html";
+  else if (/^\/groups\/[^/]+\/(?:analysis|members\/[^/]+)\/?$/.test(route)) page = "member.html";
+  else if (/^\/groups\/[^/]+\/?$/.test(route)) page = "group.html";
+  const original = `${route}${location.search}${location.hash}`;
+  location.replace(`${base}/${page}?route=${encodeURIComponent(original)}`);
+})();
+</script></body></html>

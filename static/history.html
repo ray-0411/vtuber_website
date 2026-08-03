@@ -4,28 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>歷史紀錄｜Live Observatory</title>
-  <link rel="stylesheet" href="/analytics.css">
-  <link rel="stylesheet" href="/navigation.css">
-  <link rel="stylesheet" href="/dashboard-theme.css">
+  <base id="site-base" href="/">
+  <script>if(location.hostname.endsWith(".github.io"))document.getElementById("site-base").href="/vtuber_website/";</script>
+  <script src="site.js?v=1"></script>
+  <link rel="stylesheet" href="analytics.css">
+  <link rel="stylesheet" href="navigation.css">
+  <link rel="stylesheet" href="dashboard-theme.css">
 </head>
 <body class="member-history-page">
   <header class="topbar">
     <div class="nav-left">
       <button class="menu-button" type="button" aria-label="開啟導覽選單" aria-expanded="false"><span></span></button>
-      <a class="brand" href="/"><span class="brand-mark">V</span><span>Live Observatory</span></a>
+      <a class="brand" href="./"><span class="brand-mark">V</span><span>Live Observatory</span></a>
     </div>
-    <nav><a href="/">總覽</a><a class="active" id="group-nav" href="#">Group 分析</a></nav>
+    <nav><a href="./">總覽</a><a class="active" id="group-nav" href="#">Group 分析</a></nav>
   </header>
   <div class="drawer-overlay"></div>
   <aside class="nav-drawer" aria-label="網站導覽">
     <div class="drawer-head"><strong>Explore</strong><button class="drawer-close" type="button" aria-label="關閉選單">×</button></div>
-    <a class="drawer-home" href="/"><span>直播總覽</span><span>⌂</span></a>
+    <a class="drawer-home" href="./"><span>直播總覽</span><span>⌂</span></a>
     <div class="drawer-section-title">GROUP ANALYTICS</div>
     <div class="drawer-groups"><div class="drawer-loading">開啟後載入 Group…</div></div>
     <div class="drawer-foot">LIVE OBSERVATORY</div>
   </aside>
   <main>
-    <div class="crumbs"><a href="/">首頁</a><span>/</span><a id="group-link" href="#">Group</a><span>/</span><a id="member-link" href="#">成員</a><span>/</span><span>歷史紀錄</span></div>
+    <div class="crumbs"><a href="./">首頁</a><span>/</span><a id="group-link" href="#">Group</a><span>/</span><a id="member-link" href="#">成員</a><span>/</span><span>歷史紀錄</span></div>
     <section class="history-page-hero">
       <div>
         <p class="eyebrow">MONTHLY BROADCAST ARCHIVE</p>
@@ -75,7 +78,9 @@
     </section>
   </div>
   <footer><a id="back-member" href="#">← 回到個人分析</a><span>Live Observatory · Monthly Archive</span></footer>
-  <script src="/navigation.js?v=2"></script>
-  <script src="/history.js?v=2"></script>
+  <script src="supabase-config.js?v=1"></script>
+  <script src="api-client.js?v=1"></script>
+  <script src="navigation.js?v=2"></script>
+  <script src="history.js?v=2"></script>
 </body>
 </html>

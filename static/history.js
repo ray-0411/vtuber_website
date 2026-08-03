@@ -1,6 +1,6 @@
 const $ = selector => document.querySelector(selector);
 const fmt = new Intl.NumberFormat("zh-TW");
-const parts = location.pathname.split("/").filter(Boolean);
+const parts = dashboardRoutePath().split("/").filter(Boolean);
 const group = parts[1] || "meridian";
 const memberId = parts[3];
 let historyData;
@@ -61,7 +61,7 @@ async function openStreamModal(streamId) {
   $("#viewer-chart").innerHTML = `<div class="empty">載入中…</div>`;
   $("#stream-modal-stats").innerHTML = "";
   try {
-    const response = await fetch(`/api/streams/${encodeURIComponent(streamId)}/snapshots`);
+    const response = await dashboardFetch(`/api/streams/${encodeURIComponent(streamId)}/snapshots`);
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "無法讀取這場直播");
     const {stream, snapshots} = data;
@@ -130,7 +130,7 @@ async function load(month = "") {
   $("#history-calendar").innerHTML = `<div class="empty history-loading">載入月份資料…</div>`;
   $("#history-month-table").innerHTML = `<tr><td colspan="7">載入中…</td></tr>`;
   const query = month ? `?month=${encodeURIComponent(month)}` : "";
-  const response = await fetch(`/api/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(memberId)}/history${query}`);
+  const response = await dashboardFetch(`/api/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(memberId)}/history${query}`);
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || "無法讀取歷史紀錄");
   historyData = data;
@@ -157,8 +157,8 @@ function showError(error) {
   $("#history-month-table").innerHTML = `<tr><td colspan="7">${safe(error.message)}</td></tr>`;
 }
 
-const memberPath = `/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(memberId)}`;
-$("#group-nav").href = $("#group-link").href = `/groups/${encodeURIComponent(group)}`;
+const memberPath = dashboardPath(`/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(memberId)}`);
+$("#group-nav").href = $("#group-link").href = dashboardPath(`/groups/${encodeURIComponent(group)}`);
 $("#group-link").textContent = pretty(group);
 $("#member-link").href = $("#back-member").href = memberPath;
 $("#history-month").addEventListener("change", event => event.target.value && load(event.target.value).catch(showError));
@@ -180,4 +180,4 @@ document.querySelectorAll("[data-close-modal]").forEach(element => element.addEv
 document.addEventListener("keydown", event => {
   if (event.key === "Escape" && $("#stream-modal").classList.contains("open")) closeStreamModal();
 });
-load(new URLSearchParams(location.search).get("month") || "").catch(showError);
+load(dashboardSearchParams().get("month") || "").catch(showError);

@@ -1,5 +1,15 @@
 # VTuber Live Observatory
 
+## GitHub Pages
+
+The `static` directory is deployed by `.github/workflows/pages.yml`. The public
+site reads only reviewed Supabase RPC functions with the publishable browser
+key in `static/supabase-config.js`; database passwords and secret/service-role
+keys must never be committed.
+
+Project Pages uses the `/vtuber_website/` base path. `static/404.html` routes
+Group, member, analysis, and history URLs to their matching static templates.
+
 以唯讀方式呈現 VTuber 直播資料的第一版檢視網頁。這是獨立專案，不依賴抓取器
 repository 的路徑或程式碼。後端採用 Python 標準函式庫，不需安裝額外套件。
 

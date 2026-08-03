@@ -7,6 +7,24 @@
 - 第二位：新增功能
 - 第三位：修正與小幅調整
 
+## [1.4.0] - 2026-08-04
+
+Supabase-backed public dashboard and GitHub Pages deployment support.
+
+### Added
+
+- PostgreSQL migrations for private dashboard and analytics source tables.
+- Transactional SQLite-to-Supabase synchronization with validation and row-count checks.
+- Nine reviewed read-only RPCs for homepage, Group, member, history, and snapshot data.
+- Browser REST adapter using a Supabase publishable key while preserving the local API fallback.
+- GitHub Pages subpath routing, dynamic-page fallback, and Actions deployment workflow.
+
+### Security
+
+- Raw tables use RLS and remain inaccessible to anonymous and authenticated browser roles.
+- Browser clients receive only explicitly granted RPC results.
+- Local database connection credentials remain excluded from Git.
+
 ## [1.3.1] - 2026-08-02
 
 清理首頁改版後不再使用的程式、API 與樣式，降低維護成本與多餘查詢。

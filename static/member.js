@@ -1,11 +1,11 @@
 const $ = s => document.querySelector(s);
 const fmt = new Intl.NumberFormat("zh-TW");
-const parts = location.pathname.split("/").filter(Boolean);
+const parts = dashboardRoutePath().split("/").filter(Boolean);
 const group = parts[1] || "meridian";
 const isGroupAnalysis = parts[2] === "analysis";
 const memberId = isGroupAnalysis ? null : parts[3];
 const validPeriods = new Set(["1m", "3m", "6m", "1y", "all"]);
-const requestedPeriod = new URLSearchParams(location.search).get("period");
+const requestedPeriod = dashboardSearchParams().get("period");
 let analysis;
 
 const safe = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -129,7 +129,7 @@ async function openStreamModal(streamId) {
   $("#viewer-chart").innerHTML = `<div class="empty">載入中…</div>`;
   $("#stream-modal-stats").innerHTML = "";
   try {
-    const response = await fetch(`/api/streams/${encodeURIComponent(streamId)}/snapshots`);
+    const response = await dashboardFetch(`/api/streams/${encodeURIComponent(streamId)}/snapshots`);
     if (!response.ok) throw new Error("無法讀取這場直播");
     const data = await response.json();
     const {stream, snapshots} = data;
@@ -168,7 +168,7 @@ async function init() {
   const endpoint = isGroupAnalysis
     ? `/api/groups/${encodeURIComponent(group)}/analysis?period=${encodeURIComponent(selectedPeriod)}`
     : `/api/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(memberId)}?period=${encodeURIComponent(selectedPeriod)}`;
-  const response = await fetch(endpoint);
+  const response = await dashboardFetch(endpoint);
   if (!response.ok) throw new Error(isGroupAnalysis ? "找不到這個 Group" : "找不到這位成員");
   analysis = await response.json();
   const {profile, summary, streams, daily, categories, active_intervals, calendar} = analysis;
@@ -177,12 +177,12 @@ async function init() {
     document.body.classList.add("group-analysis-page");
     $("#open-history").hidden = true;
   } else {
-    $("#open-history").href = `/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(memberId)}/history`;
+    $("#open-history").href = dashboardPath(`/groups/${encodeURIComponent(group)}/members/${encodeURIComponent(memberId)}/history`);
   }
   const displayName = isGroupAnalysis ? `${groupName} 整體分析` : profile.name;
   document.title = `${displayName}｜Live Observatory`;
-  $("#group-nav").href = $("#group-link").href = $("#back-group").href =
-    `/groups/${encodeURIComponent(group)}?period=${encodeURIComponent(selectedPeriod)}`;
+  $("#group-nav").href = $("#group-link").href = $("#back-group").href = dashboardPath(
+    `/groups/${encodeURIComponent(group)}?period=${encodeURIComponent(selectedPeriod)}`);
   $("#group-link").textContent = $("#group-label").textContent = groupName;
   $("#member-crumb").textContent = $("#member-name").textContent = displayName;
   $("#member-id").textContent = isGroupAnalysis
