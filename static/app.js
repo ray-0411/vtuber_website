@@ -10,7 +10,8 @@ async function getJSON(url) {
 function dateTime(value) {
   if (!value) return "—";
   const normalized = value.includes("T") ? value : value.replace(" ", "T");
-  const date = new Date(normalized.endsWith("Z") ? normalized : `${normalized}+08:00`);
+  const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(normalized);
+  const date = new Date(hasTimezone ? normalized : `${normalized}+08:00`);
   if (Number.isNaN(date.valueOf())) return value;
   const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
     year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit",

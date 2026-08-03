@@ -7,6 +7,13 @@
 - 第二位：新增功能
 - 第三位：修正與小幅調整
 
+## [1.4.4] - 2026-08-04
+
+### Fixed
+
+- Recognize ISO timestamps ending in an explicit offset such as `+00:00`
+  instead of appending a second timezone offset and returning the raw value.
+
 ## [1.4.3] - 2026-08-04
 
 ### Fixed
