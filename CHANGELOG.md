@@ -13,6 +13,7 @@
 
 - Move the calendar-period selector to the single-stream ranking while restoring
   the lower section to the previous complete month's member-average ranking.
+- Show the actual ranked month in the monthly-average heading.
 
 ## [1.5.0] - 2026-08-05
 

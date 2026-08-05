@@ -102,6 +102,8 @@ async function loadWeeklyRanking() {
 
 async function loadMonthlyAverageRanking() {
   const data = await getJSON("/api/rankings/monthly-average");
+  const monthNumber = Number(data.month_start.slice(5, 7));
+  $("#monthly-ranking-heading").textContent = `${monthNumber}月平均觀眾 Top 10`;
   $("#monthly-ranking-period").textContent = `${data.month_start.replaceAll("-", "/")} — ${data.month_end.replaceAll("-", "/")}`;
   for (const platform of ["youtube", "twitch"]) {
     const rows = data.platforms[platform] || [];
