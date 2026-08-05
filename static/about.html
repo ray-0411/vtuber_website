@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>關於網站 · Live Observatory</title>
+  <base id="site-base" href="/">
+  <script>if(location.hostname.endsWith(".github.io"))document.getElementById("site-base").href="/vtuber_website/";</script>
+  <script src="site.js?v=2"></script>
+  <link rel="stylesheet" href="analytics.css">
+  <link rel="stylesheet" href="navigation.css?v=2">
+  <link rel="stylesheet" href="dashboard-theme.css?v=5">
+  <link rel="stylesheet" href="about.css?v=1">
+</head>
+<body class="about-page">
+  <header class="topbar">
+    <div class="nav-left">
+      <button class="menu-button" type="button" aria-label="開啟導覽選單" aria-expanded="false"><span></span></button>
+      <a class="brand" href="./"><span class="brand-mark">V</span><span>Live Observatory</span></a>
+    </div>
+    <nav><a href="./">總覽</a><a class="active" href="about.html">關於網站</a></nav>
+  </header>
+  <div class="drawer-overlay"></div>
+  <aside class="nav-drawer" aria-label="網站導覽">
+    <div class="drawer-head"><strong>Explore</strong><button class="drawer-close" type="button" aria-label="關閉選單">×</button></div>
+    <a class="drawer-home" href="./"><span>直播總覽</span><span>⌂</span></a>
+    <div class="drawer-section-title">GROUP ANALYTICS</div>
+    <div class="drawer-groups"><div class="drawer-loading">載入 Group 中…</div></div>
+    <div class="drawer-foot">LIVE OBSERVATORY</div>
+  </aside>
+  <main class="about-main">
+    <div class="crumbs"><a href="./">首頁</a><span>/</span><span>關於網站</span></div>
+    <section class="about-hero">
+      <p class="eyebrow">ABOUT THIS PROJECT</p>
+      <h1>關於 Live Observatory</h1>
+      <p>記錄台灣 VTuber 的直播活動與觀看趨勢，讓不同平台、Group 與成員的歷史資料更容易被看見。</p>
+    </section>
+    <!-- 以下四個 about-card 是主要說明內容，可直接修改標題與段落。 -->
+    <div class="about-grid">
+      <article class="about-card"><p class="eyebrow">INTRODUCTION</p><h2>網站介紹</h2><p>Live Observatory 整理台灣 VTuber 在 YouTube 與 Twitch 的直播資料，提供即時直播、觀看排行、Group 與成員分析，以及歷史直播紀錄。</p></article>
+      <article class="about-card"><p class="eyebrow">DATA</p><h2>資料來源</h2><p>資料由自動化抓取器定期收集，再經過合併、清理與統計後更新至網站。觀眾數與直播資訊可能因平台回報時間而有些微延遲。</p></article>
+      <article class="about-card"><p class="eyebrow">METHODOLOGY</p><h2>統計方式</h2><p>平均觀眾排行會排除快照數過少的直播；不同頁面使用的統計期間與最低快照條件，會依功能需求調整。</p></article>
+      <article class="about-card"><p class="eyebrow">UPDATE</p><h2>更新與聯絡</h2><p>網站資料會配合抓取器資料不定期更新；若發現名稱、Group、直播紀錄或統計結果有誤，可透過專案頁面回報。</p></article>
+    </div>
+  </main>
+  <footer><a href="./">← 回到直播總覽</a><span>Live Observatory · About</span></footer>
+  <script src="supabase-config.js?v=1"></script>
+  <script src="api-client.js?v=3"></script>
+  <script src="navigation.js?v=3"></script>
+</body>
+</html>

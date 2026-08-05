@@ -17,6 +17,11 @@
 - Standardize displayed timestamps across all pages as `YYYY-MM-DD HH:mm:ss`
   in Taiwan time (UTC+8), including ISO values with explicit offsets.
 
+### Added
+
+- Add an editable About page and a persistent link at the bottom of the left
+  navigation drawer.
+
 ## [1.5.0] - 2026-08-05
 
 ### Added

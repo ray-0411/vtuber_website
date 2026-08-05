@@ -5,6 +5,7 @@
   const overlay = document.querySelector(".drawer-overlay");
   const close = document.querySelector(".drawer-close");
   const list = document.querySelector(".drawer-groups");
+  const foot = document.querySelector(".drawer-foot");
   let loaded = false;
 
   const safe = value => String(value ?? "").replace(/[&<>"']/g, c => (
@@ -14,6 +15,13 @@
     word => word.charAt(0).toUpperCase() + word.slice(1)
   ).join(" ");
   const current = dashboardRoutePath().match(/^\/groups\/([^/]+)/)?.[1];
+  if (foot && !document.querySelector(".drawer-about")) {
+    const about = document.createElement("a");
+    about.className = `drawer-about ${dashboardRoutePath() === "/about.html" ? "active" : ""}`;
+    about.href = dashboardPath("/about.html");
+    about.innerHTML = `<span class="drawer-group-mark">i</span><span><strong>關於網站</strong><small>網站介紹與資料說明</small></span><small>→</small>`;
+    foot.before(about);
+  }
 
   async function loadGroups() {
     if (loaded) return;
