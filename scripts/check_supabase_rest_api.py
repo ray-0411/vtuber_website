@@ -63,10 +63,10 @@ def main() -> int:
     checks = (
         ("dashboard_overview", {}, dict),
         ("dashboard_live", {}, list),
-        ("dashboard_weekly_rankings", {}, dict),
-        ("dashboard_period_average_rankings", {"ranking_period": "last_week"}, dict),
-        ("dashboard_period_average_rankings", {"ranking_period": "this_week"}, dict),
-        ("dashboard_period_average_rankings", {"ranking_period": "this_month"}, dict),
+        ("dashboard_stream_rankings", {"ranking_period": "last_week"}, dict),
+        ("dashboard_stream_rankings", {"ranking_period": "this_week"}, dict),
+        ("dashboard_stream_rankings", {"ranking_period": "this_month"}, dict),
+        ("dashboard_monthly_average_rankings", {}, dict),
         ("dashboard_groups", {}, list),
         ("dashboard_group_members", {"requested_group": group, "analysis_period": "1m"}, list),
         ("dashboard_stream_snapshots", {"requested_stream_id": stream_id}, dict),
@@ -80,7 +80,7 @@ def main() -> int:
         if not isinstance(payload, expected_type):
             raise RuntimeError(f"REST RPC {name} returned an unexpected JSON type")
         period_range = ""
-        if name == "dashboard_period_average_rankings":
+        if name == "dashboard_stream_rankings":
             period_range = f" ({payload['period_start']} to {payload['period_end']})"
         print(f"Public REST RPC {name}: OK{period_range}")
     if cors not in {"*", TEST_ORIGIN}:

@@ -179,11 +179,17 @@ class DashboardRepository:
             ).fetchall()
         return [self._clean(row) for row in rows]
 
-    def weekly_ranking(self, limit=10):
+    def weekly_ranking(self, period="last_week", limit=10):
         today = datetime.now().date()
         this_week_start = today - timedelta(days=today.weekday())
-        week_start = this_week_start - timedelta(days=7)
-        week_end = this_week_start
+        periods = {
+            "last_week": (this_week_start - timedelta(days=7), this_week_start),
+            "this_week": (this_week_start, today + timedelta(days=1)),
+            "this_month": (today.replace(day=1), today + timedelta(days=1)),
+        }
+        if period not in periods:
+            raise ValueError("Invalid ranking period")
+        period_start, period_end_exclusive = periods[period]
         with self.connect() as db:
             rows = db.execute(
                 """
@@ -207,8 +213,8 @@ class DashboardRepository:
                          stats.started_at DESC
                 """,
                 (
-                    week_start.isoformat(),
-                    week_end.isoformat(),
+                    period_start.isoformat(),
+                    period_end_exclusive.isoformat(),
                 ),
             ).fetchall()
         ranking_limit = min(max(limit, 1), 50)
@@ -243,22 +249,16 @@ class DashboardRepository:
                     "unique_streams": unique_rows,
                 }
         return {
-            "week_start": week_start.isoformat(),
-            "week_end": (week_end - timedelta(days=1)).isoformat(),
+            "period": period,
+            "period_start": period_start.isoformat(),
+            "period_end": (period_end_exclusive - timedelta(days=1)).isoformat(),
             "platforms": platform_rankings,
         }
 
-    def monthly_average_ranking(self, period="last_week", limit=10):
+    def monthly_average_ranking(self, limit=10):
         today = datetime.now().date()
-        this_week_start = today - timedelta(days=today.weekday())
-        periods = {
-            "last_week": (this_week_start - timedelta(days=7), this_week_start),
-            "this_week": (this_week_start, today + timedelta(days=1)),
-            "this_month": (today.replace(day=1), today + timedelta(days=1)),
-        }
-        if period not in periods:
-            raise ValueError("Invalid ranking period")
-        period_start, period_end_exclusive = periods[period]
+        month_end = today.replace(day=1)
+        month_start = (month_end - timedelta(days=1)).replace(day=1)
         with self.connect() as db:
             rows = db.execute(
                 """
@@ -280,14 +280,13 @@ class DashboardRepository:
                 ORDER BY stats.platform, average_viewers DESC,
                          stream_count DESC, stats.member_name
                 """,
-                (period_start.isoformat(), period_end_exclusive.isoformat()),
+                (month_start.isoformat(), month_end.isoformat()),
             ).fetchall()
         ranking_limit = min(max(limit, 1), 50)
         cleaned = [self._clean(row) for row in rows]
         return {
-            "period": period,
-            "period_start": period_start.isoformat(),
-            "period_end": (period_end_exclusive - timedelta(days=1)).isoformat(),
+            "month_start": month_start.isoformat(),
+            "month_end": (month_end - timedelta(days=1)).isoformat(),
             "platforms": {
                 platform: [
                     row for row in cleaned if row["platform"] == platform
@@ -939,12 +938,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/live":
                 return self.send_json(self.repository.live())
             if parsed.path == "/api/rankings/weekly":
-                return self.send_json(self.repository.weekly_ranking())
-            if parsed.path == "/api/rankings/monthly-average":
                 params = parse_qs(parsed.query)
-                return self.send_json(self.repository.monthly_average_ranking(
+                return self.send_json(self.repository.weekly_ranking(
                     period=params.get("period", ["last_week"])[0]
                 ))
+            if parsed.path == "/api/rankings/monthly-average":
+                return self.send_json(self.repository.monthly_average_ranking())
             parts = [part for part in parsed.path.split("/") if part]
             if (
                 len(parts) == 4

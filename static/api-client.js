@@ -8,10 +8,10 @@
     const path = url.pathname;
     if (path === "/api/overview") return ["dashboard_overview", {}];
     if (path === "/api/live") return ["dashboard_live", {}];
-    if (path === "/api/rankings/weekly") return ["dashboard_weekly_rankings", {}];
-    if (path === "/api/rankings/monthly-average") return ["dashboard_period_average_rankings", {
+    if (path === "/api/rankings/weekly") return ["dashboard_stream_rankings", {
       ranking_period: url.searchParams.get("period") || "last_week",
     }];
+    if (path === "/api/rankings/monthly-average") return ["dashboard_monthly_average_rankings", {}];
     if (path === "/api/groups") return ["dashboard_groups", {}];
 
     let match = path.match(/^\/api\/streams\/(\d+)\/snapshots$/);

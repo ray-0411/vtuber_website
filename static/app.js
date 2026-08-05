@@ -47,9 +47,17 @@ async function loadOverview() {
 }
 
 async function loadWeeklyRanking() {
-  const data = await getJSON("/api/rankings/weekly");
+  const period = $("#stream-ranking-period").value;
+  const data = await getJSON(`/api/rankings/weekly?period=${encodeURIComponent(period)}`);
+  const periodLabels = {last_week: "上週", this_week: "本週", this_month: "本月"};
+  const periodLabel = periodLabels[data.period] || "期間";
   let selectedMetric = "average_viewers";
-  $("#ranking-period").textContent = `${data.week_start.replaceAll("-", "/")} — ${data.week_end.replaceAll("-", "/")}`;
+  $("#ranking-heading").textContent = `${periodLabel}平均觀看 Top 10`;
+  document.querySelectorAll("[data-ranking-metric]").forEach(button =>
+    button.classList.toggle("active", button.dataset.rankingMetric === selectedMetric));
+  $("#ranking-period").textContent = `${data.period_start.replaceAll("-", "/")} — ${data.period_end.replaceAll("-", "/")}`;
+  $("#youtube-stream-ranking-title").innerHTML = `<span class="badge youtube">YouTube</span> ${periodLabel} Top 10`;
+  $("#twitch-stream-ranking-title").innerHTML = `<span class="badge twitch">Twitch</span> ${periodLabel} Top 10`;
   const renderRanking = (platform, uniqueOnly) => {
     const ranking = data.platforms[platform]?.[selectedMetric] || { streams: [], unique_streams: [] };
     const rows = uniqueOnly ? ranking.unique_streams : ranking.streams;
@@ -77,13 +85,13 @@ async function loadWeeklyRanking() {
     renderRanking("twitch", uniqueOnly);
     requestAnimationFrame(equalizeRankingRowHeights);
   };
-  $("#ranking-allow-duplicates").addEventListener("change", renderAll);
-  document.querySelectorAll("[data-ranking-metric]").forEach(button => button.addEventListener("click", () => {
+  $("#ranking-allow-duplicates").onchange = renderAll;
+  document.querySelectorAll("[data-ranking-metric]").forEach(button => button.onclick = () => {
     selectedMetric = button.dataset.rankingMetric;
     document.querySelectorAll("[data-ranking-metric]").forEach(item => item.classList.toggle("active", item === button));
-    $("#ranking-heading").textContent = `上週${selectedMetric === "average_viewers" ? "平均" : "最高"}觀看 Top 10`;
+    $("#ranking-heading").textContent = `${periodLabel}${selectedMetric === "average_viewers" ? "平均" : "最高"}觀看 Top 10`;
     renderAll();
-  }));
+  });
   let resizeFrame;
   window.addEventListener("resize", () => {
     cancelAnimationFrame(resizeFrame);
@@ -93,10 +101,8 @@ async function loadWeeklyRanking() {
 }
 
 async function loadMonthlyAverageRanking() {
-  const period = $("#average-ranking-period").value;
-  const data = await getJSON(`/api/rankings/monthly-average?period=${encodeURIComponent(period)}`);
-  const periodLabels = {last_week: "上週", this_week: "本週", this_month: "本月"};
-  $("#monthly-ranking-period").textContent = `${data.period_start.replaceAll("-", "/")} — ${data.period_end.replaceAll("-", "/")}`;
+  const data = await getJSON("/api/rankings/monthly-average");
+  $("#monthly-ranking-period").textContent = `${data.month_start.replaceAll("-", "/")} — ${data.month_end.replaceAll("-", "/")}`;
   for (const platform of ["youtube", "twitch"]) {
     const rows = data.platforms[platform] || [];
     $(`#${platform}-monthly-ranking`).innerHTML = rows.length ? rows.map((row, index) => {
@@ -112,9 +118,9 @@ async function loadMonthlyAverageRanking() {
           <h3><a class="ranking-person" href="${safe(profileUrl)}">${safe(row.name)}</a></h3>
           <small>${safe(row.group_name)} · ${fmt.format(row.stream_count)} 場有效直播</small>
         </div>
-        <div class="ranking-stat"><small>${periodLabels[data.period] || "期間"}平均觀眾</small><strong>${fmt.format(row.average_viewers || 0)}</strong></div>
+        <div class="ranking-stat"><small>月平均觀眾</small><strong>${fmt.format(row.average_viewers || 0)}</strong></div>
       </article>`;
-    }).join("") : `<div class="empty">該期間沒有足夠的直播資料</div>`;
+    }).join("") : `<div class="empty">該月沒有足夠的直播資料</div>`;
   }
   requestAnimationFrame(equalizeRankingRowHeights);
 }
@@ -149,11 +155,11 @@ async function loadStreams() {
 let timer;
 $("#search").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(loadStreams, 250); });
 $("#platform").addEventListener("change", loadStreams);
-$("#average-ranking-period").addEventListener("change", () => {
-  $("#youtube-monthly-ranking").innerHTML = `<div class="empty">讀取排行榜中…</div>`;
-  $("#twitch-monthly-ranking").innerHTML = `<div class="empty">讀取排行榜中…</div>`;
-  loadMonthlyAverageRanking().catch(error => {
-    $("#monthly-ranking-period").textContent = `讀取失敗：${error.message}`;
+$("#stream-ranking-period").addEventListener("change", () => {
+  $("#youtube-ranking").innerHTML = `<div class="empty">讀取排行榜中…</div>`;
+  $("#twitch-ranking").innerHTML = `<div class="empty">讀取排行榜中…</div>`;
+  loadWeeklyRanking().catch(error => {
+    $("#ranking-period").textContent = `讀取失敗：${error.message}`;
   });
 });
 
