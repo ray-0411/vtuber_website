@@ -9,7 +9,7 @@ let members = [];
 
 const safe = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pretty = value => value.split("_").map(x => x.charAt(0).toUpperCase() + x.slice(1)).join(" ");
-const shortDate = value => value ? value.slice(0, 10).replaceAll("-", "/") : "尚無資料";
+const shortDate = value => value ? dashboardDate(value) : "尚無資料";
 
 function render() {
   const query = $("#member-search").value.trim().toLowerCase();

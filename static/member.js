@@ -10,7 +10,7 @@ let analysis;
 
 const safe = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pretty = value => value.split("_").map(x => x.charAt(0).toUpperCase() + x.slice(1)).join(" ");
-const date = value => value ? value.slice(0, 10).replaceAll("-", "/") : "—";
+const date = value => dashboardDate(value);
 
 function hourChart(rows) {
   const order = [...Array.from({length: 24}, (_, i) => 720 + i * 30), ...Array.from({length: 24}, (_, i) => i * 30)];
@@ -70,17 +70,11 @@ function renderHistory(platform = "") {
 }
 
 function snapshotTime(value) {
-  if (!value) return null;
-  const normalized = value.includes("T") ? value : value.replace(" ", "T");
-  const parsed = new Date(normalized.endsWith("Z") ? normalized : `${normalized}+08:00`);
-  return Number.isNaN(parsed.valueOf()) ? null : parsed;
+  return dashboardParseTime(value);
 }
 
 function fullDateTime(value) {
-  const parsed = snapshotTime(value);
-  return parsed ? new Intl.DateTimeFormat("zh-TW", {
-    month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hour12:false
-  }).format(parsed) : "—";
+  return dashboardDateTime(value);
 }
 
 function viewerChart(snapshots, platform) {
@@ -104,9 +98,7 @@ function viewerChart(snapshots, platform) {
   const ticks = [0, Math.ceil(max / 2), max].filter((value, index, all) => all.indexOf(value) === index);
   const labelIndexes = [0, Math.floor((values.length - 1) / 2), values.length - 1]
     .filter((value, index, all) => all.indexOf(value) === index);
-  const timeText = row => row.time
-    ? new Intl.DateTimeFormat("zh-TW", {hour:"2-digit", minute:"2-digit", hour12:false}).format(row.time)
-    : row.captured_at;
+  const timeText = row => dashboardClockTime(row.captured_at);
   return `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
     ${ticks.map(value => `<g><line class="viewer-grid" x1="${left}" y1="${y(value)}" x2="${width-right}" y2="${y(value)}"/><text class="viewer-axis" x="${left-9}" y="${y(value)+3}" text-anchor="end">${fmt.format(value)}</text></g>`).join("")}
     <path class="viewer-line ${safe(platform)}" d="${path}"/>
@@ -136,7 +128,7 @@ async function openStreamModal(streamId) {
     $("#stream-modal-title").textContent = stream.title || "未提供標題";
     $("#stream-modal-meta").innerHTML = `
       <span class="chip ${safe(stream.platform)}">${safe(stream.platform)}</span>
-      <span>${date(stream.started_at)}</span>
+      <span>${fullDateTime(stream.started_at)}</span>
       ${stream.stream_url ? `<a href="${safe(stream.stream_url)}" target="_blank" rel="noreferrer">開啟原直播 ↗</a>` : ""}`;
     $("#viewer-chart").innerHTML = viewerChart(snapshots, stream.platform);
     const peak = snapshots.length ? Math.max(...snapshots.map(row => row.viewer_count)) : null;

@@ -7,20 +7,6 @@ async function getJSON(url) {
   return response.json();
 }
 
-function dateTime(value) {
-  if (!value) return "—";
-  const normalized = value.includes("T") ? value : value.replace(" ", "T");
-  const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(normalized);
-  const date = new Date(hasTimezone ? normalized : `${normalized}+08:00`);
-  if (Number.isNaN(date.valueOf())) return value;
-  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
-    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit",
-    minute: "2-digit", second: "2-digit", hour12: false,
-    timeZone: "Asia/Taipei"
-  }).formatToParts(date).map(part => [part.type, part.value]));
-  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
-}
-
 function safe(value) {
   return String(value ?? "").replace(/[&<>"']/g, c => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -43,7 +29,7 @@ async function loadOverview() {
   $("#streamers").textContent = fmt.format(data.streamers);
   $("#streams").textContent = fmt.format(data.streams);
   $("#platform-mix").textContent = data.platforms.map(x => `${x.platform} ${fmt.format(x.count)}`).join(" · ");
-  $("#sync-label").textContent = `最近更新 ${dateTime(data.last_checked_at)}`;
+  $("#sync-label").textContent = `最近更新 ${dashboardDateTime(data.last_checked_at)}`;
 }
 
 async function loadWeeklyRanking() {
@@ -71,7 +57,7 @@ async function loadWeeklyRanking() {
       <strong class="ranking-number">${index + 1}</strong>
       <a class="ranking-avatar" href="${safe(profileUrl)}" aria-label="查看 ${safe(row.name)} 的個人頁面"><span>${safe(row.name?.slice(0, 1) || "V")}</span>${avatarUrl ? `<img src="${safe(avatarUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</a>
       <div class="ranking-stream">
-        <small><a class="ranking-person" href="${safe(profileUrl)}">${safe(row.name)}</a> · ${dateTime(row.started_at)} · ${safe(row.group_name)}</small>
+        <small><a class="ranking-person" href="${safe(profileUrl)}">${safe(row.name)}</a> · ${dashboardDateTime(row.started_at)} · ${safe(row.group_name)}</small>
         <h3><a href="${safe(row.stream_url || "#")}" target="_blank" rel="noreferrer">${safe(row.title)}</a></h3>
       </div>
       <div class="ranking-stat"><small>${selectedMetric === "average_viewers" ? "平均觀眾" : "最高觀眾"}</small><strong>${fmt.format(row[selectedMetric] || 0)}</strong></div>
@@ -148,7 +134,7 @@ async function loadStreams() {
       </div></td>
       <td class="title-cell"><a href="${safe(row.stream_url || "#")}" target="_blank" rel="noreferrer">${safe(row.title || "未提供標題")}</a></td>
       <td><span class="badge ${safe(row.platform)}">${safe(row.platform)}</span></td>
-      <td>${dateTime(row.started_at)}</td>
+      <td>${dashboardDateTime(row.started_at)}</td>
       <td class="number">${fmt.format(row.viewer_count || 0)}</td>
     </tr>`;
   }).join("") || `<tr><td colspan="5">目前沒有符合條件的即時直播</td></tr>`;
