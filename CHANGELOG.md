@@ -7,6 +7,13 @@
 - 第二位：新增功能
 - 第三位：修正與小幅調整
 
+## [1.5.0] - 2026-08-05
+
+### Added
+
+- Add last-week, current-week, and current-month calendar-period options to the
+  homepage average-viewer ranking.
+
 ## [1.4.4] - 2026-08-04
 
 ### Fixed

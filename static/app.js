@@ -93,8 +93,10 @@ async function loadWeeklyRanking() {
 }
 
 async function loadMonthlyAverageRanking() {
-  const data = await getJSON("/api/rankings/monthly-average");
-  $("#monthly-ranking-period").textContent = `${data.month_start.replaceAll("-", "/")} — ${data.month_end.replaceAll("-", "/")}`;
+  const period = $("#average-ranking-period").value;
+  const data = await getJSON(`/api/rankings/monthly-average?period=${encodeURIComponent(period)}`);
+  const periodLabels = {last_week: "上週", this_week: "本週", this_month: "本月"};
+  $("#monthly-ranking-period").textContent = `${data.period_start.replaceAll("-", "/")} — ${data.period_end.replaceAll("-", "/")}`;
   for (const platform of ["youtube", "twitch"]) {
     const rows = data.platforms[platform] || [];
     $(`#${platform}-monthly-ranking`).innerHTML = rows.length ? rows.map((row, index) => {
@@ -110,9 +112,9 @@ async function loadMonthlyAverageRanking() {
           <h3><a class="ranking-person" href="${safe(profileUrl)}">${safe(row.name)}</a></h3>
           <small>${safe(row.group_name)} · ${fmt.format(row.stream_count)} 場有效直播</small>
         </div>
-        <div class="ranking-stat"><small>月平均觀眾</small><strong>${fmt.format(row.average_viewers || 0)}</strong></div>
+        <div class="ranking-stat"><small>${periodLabels[data.period] || "期間"}平均觀眾</small><strong>${fmt.format(row.average_viewers || 0)}</strong></div>
       </article>`;
-    }).join("") : `<div class="empty">該月沒有足夠的直播資料</div>`;
+    }).join("") : `<div class="empty">該期間沒有足夠的直播資料</div>`;
   }
   requestAnimationFrame(equalizeRankingRowHeights);
 }
@@ -147,6 +149,13 @@ async function loadStreams() {
 let timer;
 $("#search").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(loadStreams, 250); });
 $("#platform").addEventListener("change", loadStreams);
+$("#average-ranking-period").addEventListener("change", () => {
+  $("#youtube-monthly-ranking").innerHTML = `<div class="empty">讀取排行榜中…</div>`;
+  $("#twitch-monthly-ranking").innerHTML = `<div class="empty">讀取排行榜中…</div>`;
+  loadMonthlyAverageRanking().catch(error => {
+    $("#monthly-ranking-period").textContent = `讀取失敗：${error.message}`;
+  });
+});
 
 Promise.all([loadOverview(), loadWeeklyRanking(), loadMonthlyAverageRanking(), loadStreams()])
   .catch(error => { $("#sync-label").textContent = `讀取失敗：${error.message}`; });

@@ -64,7 +64,9 @@ def main() -> int:
         ("dashboard_overview", {}, dict),
         ("dashboard_live", {}, list),
         ("dashboard_weekly_rankings", {}, dict),
-        ("dashboard_monthly_average_rankings", {}, dict),
+        ("dashboard_period_average_rankings", {"ranking_period": "last_week"}, dict),
+        ("dashboard_period_average_rankings", {"ranking_period": "this_week"}, dict),
+        ("dashboard_period_average_rankings", {"ranking_period": "this_month"}, dict),
         ("dashboard_groups", {}, list),
         ("dashboard_group_members", {"requested_group": group, "analysis_period": "1m"}, list),
         ("dashboard_stream_snapshots", {"requested_stream_id": stream_id}, dict),
@@ -77,7 +79,10 @@ def main() -> int:
         payload, cors = rpc(base_url, key, name, parameters)
         if not isinstance(payload, expected_type):
             raise RuntimeError(f"REST RPC {name} returned an unexpected JSON type")
-        print(f"Public REST RPC {name}: OK")
+        period_range = ""
+        if name == "dashboard_period_average_rankings":
+            period_range = f" ({payload['period_start']} to {payload['period_end']})"
+        print(f"Public REST RPC {name}: OK{period_range}")
     if cors not in {"*", TEST_ORIGIN}:
         raise RuntimeError(f"Unexpected CORS header: {cors!r}")
     print("Browser CORS access: OK")

@@ -9,7 +9,7 @@
   <script src="site.js?v=1"></script>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="navigation.css">
-  <link rel="stylesheet" href="dashboard-theme.css?v=4">
+  <link rel="stylesheet" href="dashboard-theme.css?v=5">
 </head>
 <body>
   <header class="topbar">
@@ -71,16 +71,23 @@
 
     <section class="section">
       <div class="section-title">
-        <div><p class="eyebrow">MONTHLY RANKING</p><h2>月平均觀眾 Top 10</h2></div>
-        <span class="ranking-period" id="monthly-ranking-period">讀取統計期間…</span>
+        <div><p class="eyebrow">PERIOD RANKING</p><h2>平均觀眾 Top 10</h2></div>
+        <div class="ranking-controls">
+          <select id="average-ranking-period" aria-label="平均觀眾排名期間">
+            <option value="last_week">上週</option>
+            <option value="this_week">本週</option>
+            <option value="this_month">本月</option>
+          </select>
+          <span class="ranking-period" id="monthly-ranking-period">讀取統計期間…</span>
+        </div>
       </div>
       <div class="platform-rankings">
         <section class="platform-ranking">
-          <h3><span class="badge youtube">YouTube</span> 月平均 Top 10</h3>
+          <h3><span class="badge youtube">YouTube</span> 平均 Top 10</h3>
           <div class="weekly-ranking" id="youtube-monthly-ranking"><div class="empty">讀取排行榜中…</div></div>
         </section>
         <section class="platform-ranking">
-          <h3><span class="badge twitch">Twitch</span> 月平均 Top 10</h3>
+          <h3><span class="badge twitch">Twitch</span> 平均 Top 10</h3>
           <div class="weekly-ranking" id="twitch-monthly-ranking"><div class="empty">讀取排行榜中…</div></div>
         </section>
       </div>
@@ -105,8 +112,8 @@
 
   <footer><span>Live Observatory · local preview</span><span>資料來源：live_data.db</span></footer>
   <script src="supabase-config.js?v=1"></script>
-  <script src="api-client.js?v=1"></script>
+  <script src="api-client.js?v=2"></script>
   <script src="navigation.js?v=2"></script>
-  <script src="app.js?v=13"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>
