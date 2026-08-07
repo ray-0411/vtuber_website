@@ -46,7 +46,7 @@ begin
            row_number() over (partition by stats.platform order by stats.peak_viewers desc, stats.average_viewers desc, stats.started_at desc) as peak_rank,
            row_number() over (partition by stats.platform, stats.vtuber_id order by stats.average_viewers desc, stats.peak_viewers desc, stats.started_at desc) as average_member_rank,
            row_number() over (partition by stats.platform, stats.vtuber_id order by stats.peak_viewers desc, stats.average_viewers desc, stats.started_at desc) as peak_member_rank
-      from analytics.stream_stats stats
+      from analytics.effective_stream_stats stats
       left join dashboard.streamer_audience audience on audience.vtuber_id=stats.vtuber_id
      where stats.started_at >= (period_start::timestamp at time zone 'Asia/Taipei')
        and stats.started_at < (end_exclusive::timestamp at time zone 'Asia/Taipei')

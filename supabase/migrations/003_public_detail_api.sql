@@ -23,7 +23,7 @@ begin
     when '6m' then (current_timestamp at time zone 'Asia/Taipei')::date - interval '6 months'
     when '1y' then (current_timestamp at time zone 'Asia/Taipei')::date - interval '1 year'
     else null end;
-  if not exists (select 1 from dashboard.streamer where group_name = requested_group) then
+  if not exists (select 1 from dashboard.effective_streamer where group_name = requested_group) then
     return null;
   end if;
   with live_status as (
@@ -45,12 +45,17 @@ begin
            round(avg(stats.average_viewers) filter (where stats.platform='twitch' and stats.snapshot_count > 3 and (cutoff_date is null or stats.started_at >= cutoff_date::timestamp at time zone 'Asia/Taipei'))::numeric, 1) as twitch_average_viewers,
            min(stats.started_at) as first_stream_at, max(stats.started_at) as latest_stream_at,
            coalesce(live.is_live, false) as is_live, live.viewers_now
-      from dashboard.streamer s
-      left join analytics.stream_stats stats on stats.vtuber_id = s.vtuber_id
+      from dashboard.effective_streamer s
+      left join analytics.effective_stream_stats stats on stats.vtuber_id = s.vtuber_id
       left join live_status live on live.vtuber_id = s.vtuber_id
       left join dashboard.streamer_audience audience on audience.vtuber_id = s.vtuber_id
      where s.group_name = requested_group
-     group by s.vtuber_id, audience.vtuber_id, live.vtuber_id, live.is_live, live.viewers_now
+     group by s.vtuber_id, s.name, s.group_name, s.youtube_url, s.twitch_url,
+              s.enabled, s.display_order,
+              audience.youtube_subscribers, audience.youtube_count_at,
+              audience.youtube_avatar_url, audience.twitch_followers,
+              audience.twitch_count_at, audience.twitch_avatar_url,
+              live.vtuber_id, live.is_live, live.viewers_now
   )
   select coalesce(jsonb_agg(to_jsonb(members) order by coalesce(display_order, 999999), name), '[]'::jsonb)
     into result from members;
@@ -80,8 +85,8 @@ as $$
            coalesce(stream.started_at, stream.first_seen_at) as started_at,
            stream.ended_at, stats.observed_end_at
       from dashboard.stream stream
-      join dashboard.streamer member on member.vtuber_id = stream.vtuber_id
-      left join analytics.stream_stats stats on stats.stream_id = stream.stream_id
+      join dashboard.effective_streamer member on member.vtuber_id = stream.vtuber_id
+      left join analytics.effective_stream_stats stats on stats.stream_id = stream.stream_id
      where stream.stream_id = requested_stream_id
   ) stream_row;
 $$;
@@ -107,13 +112,13 @@ declare
   result jsonb;
 begin
   select jsonb_build_object('vtuber_id', vtuber_id, 'name', name, 'group_name', group_name)
-    into profile_row from dashboard.streamer
+    into profile_row from dashboard.effective_streamer
    where group_name=requested_group and vtuber_id=requested_vtuber;
   if profile_row is null then return null; end if;
   select to_char(min(day.broadcast_day), 'YYYY-MM'), to_char(max(day.broadcast_day), 'YYYY-MM')
     into first_month, last_month
     from analytics.stream_calendar_day day
-    join analytics.stream_stats stats on stats.stream_id=day.stream_id
+    join analytics.effective_stream_stats stats on stats.stream_id=day.stream_id
    where stats.vtuber_id=requested_vtuber;
   selected_month := coalesce(requested_month, last_month, to_char(current_timestamp at time zone 'Asia/Taipei', 'YYYY-MM'));
   if selected_month !~ '^\d{4}-(0[1-9]|1[0-2])$' then raise exception 'Month must use YYYY-MM format'; end if;
@@ -125,13 +130,13 @@ begin
            count(stats.stream_id) filter (where stats.platform='twitch') as twitch
       from generate_series(month_start, month_end, interval '1 day') day
       left join analytics.stream_calendar_day cd on cd.broadcast_day=day::date
-      left join analytics.stream_stats stats on stats.stream_id=cd.stream_id and stats.vtuber_id=requested_vtuber
+      left join analytics.effective_stream_stats stats on stats.stream_id=cd.stream_id and stats.vtuber_id=requested_vtuber
      group by day::date order by day::date
   ), streams as (
     select distinct stats.stream_id, stats.platform, stats.stream_url, stats.title,
            stats.category, stats.started_at, stats.ended_at, stats.peak_viewers,
            stats.average_viewers::integer as average_viewers, stats.snapshot_count
-      from analytics.stream_stats stats
+      from analytics.effective_stream_stats stats
       join analytics.stream_calendar_day day on day.stream_id=stats.stream_id
      where stats.vtuber_id=requested_vtuber and day.broadcast_day between month_start and month_end
   )
@@ -174,9 +179,9 @@ begin
       'member_count', count(*), 'enabled_count', count(*) filter(where enabled),
       'vtuber_id', requested_group, 'is_group', true, 'enabled', true,
       'youtube_url', null, 'twitch_url', null, 'live_url', null,
-      'is_live', coalesce((select bool_or(cls.is_live) from dashboard.current_live_status cls join dashboard.streamer ls on ls.vtuber_id=cls.vtuber_id where ls.group_name=requested_group),false),
-      'viewers_now', coalesce((select sum(cls.viewer_count) filter(where cls.is_live) from dashboard.current_live_status cls join dashboard.streamer ls on ls.vtuber_id=cls.vtuber_id where ls.group_name=requested_group),0))
-      into profile_row from dashboard.streamer where group_name=requested_group group by group_name;
+      'is_live', coalesce((select bool_or(cls.is_live) from dashboard.current_live_status cls join dashboard.effective_streamer ls on ls.vtuber_id=cls.vtuber_id where ls.group_name=requested_group),false),
+      'viewers_now', coalesce((select sum(cls.viewer_count) filter(where cls.is_live) from dashboard.current_live_status cls join dashboard.effective_streamer ls on ls.vtuber_id=cls.vtuber_id where ls.group_name=requested_group),0))
+      into profile_row from dashboard.effective_streamer where group_name=requested_group group by group_name;
   else
     select to_jsonb(profile) into profile_row from (
       select s.*, coalesce(bool_or(cls.is_live),false) as is_live,
@@ -184,17 +189,22 @@ begin
              max(cls.stream_url) filter(where cls.is_live) as live_url,
              audience.youtube_subscribers, audience.youtube_count_at, audience.youtube_avatar_url,
              audience.twitch_followers, audience.twitch_count_at, audience.twitch_avatar_url
-        from dashboard.streamer s
+        from dashboard.effective_streamer s
         left join dashboard.current_live_status cls on cls.vtuber_id=s.vtuber_id
         left join dashboard.streamer_audience audience on audience.vtuber_id=s.vtuber_id
        where s.group_name=requested_group and s.vtuber_id=requested_vtuber
-       group by s.vtuber_id, audience.vtuber_id
+       group by s.vtuber_id, s.group_name, s.name, s.youtube_url,
+                s.youtube_channel_id, s.twitch_url, s.twitch_login,
+                s.enabled, s.display_order, s.note, s.synced_at,
+                audience.youtube_subscribers, audience.youtube_count_at,
+                audience.youtube_avatar_url, audience.twitch_followers,
+                audience.twitch_count_at, audience.twitch_avatar_url
     ) profile;
   end if;
   if profile_row is null then return null; end if;
 
   with selected as (
-    select * from analytics.stream_stats
+    select * from analytics.effective_stream_stats
      where group_name=requested_group and (requested_vtuber is null or vtuber_id=requested_vtuber)
   ), period_streams as (
     select * from selected where cutoff_date is null or started_at >= cutoff_date::timestamp at time zone 'Asia/Taipei'

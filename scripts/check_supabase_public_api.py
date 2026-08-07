@@ -21,8 +21,10 @@ def main() -> int:
     with psycopg.connect(database_url) as connection:
         with connection.cursor() as cursor:
             cursor.execute(
-                "select s.group_name, s.vtuber_id, stats.stream_id "
+                "select case when s.group_name='other' or gs.display_order is not null "
+                "then s.group_name else 'other' end, s.vtuber_id, stats.stream_id "
                 "from dashboard.streamer s "
+                "left join dashboard.group_settings gs on gs.group_name=s.group_name "
                 "join analytics.stream_stats stats on stats.vtuber_id=s.vtuber_id "
                 "order by stats.started_at desc limit 1"
             )

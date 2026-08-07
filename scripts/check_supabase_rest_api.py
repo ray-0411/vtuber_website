@@ -29,8 +29,10 @@ def sample_ids() -> tuple[str, str, int]:
     database = ROOT / "data" / "merged_live_data.db"
     with sqlite3.connect(f"file:{database.as_posix()}?mode=ro", uri=True) as db:
         row = db.execute(
-            "select s.group_name, s.vtuber_id, st.stream_id "
+            "select case when s.group_name='other' or gs.display_order is not null "
+            "then s.group_name else 'other' end, s.vtuber_id, st.stream_id "
             "from streamer s join stream st on st.vtuber_id=s.vtuber_id "
+            "left join group_settings gs on gs.group_name=s.group_name "
             "order by st.started_at desc limit 1"
         ).fetchone()
     if row is None:

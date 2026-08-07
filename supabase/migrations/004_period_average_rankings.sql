@@ -41,7 +41,7 @@ begin
            stats.platform, round(avg(stats.average_viewers))::integer as average_viewers,
            count(*) as stream_count, audience.youtube_avatar_url,
            audience.twitch_avatar_url
-      from analytics.stream_stats stats
+      from analytics.effective_stream_stats stats
       left join dashboard.streamer_audience audience on audience.vtuber_id = stats.vtuber_id
      where stats.started_at >= (period_start::timestamp at time zone 'Asia/Taipei')
        and stats.started_at < (end_exclusive::timestamp at time zone 'Asia/Taipei')

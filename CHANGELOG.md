@@ -21,8 +21,8 @@
 
 - Add an editable About page and a persistent link at the bottom of the left
   navigation drawer.
-- Consolidate members outside the four selected Groups into `other` during each
-  merged-database refresh.
+- Treat Groups without a numeric `display_order` as `other` in the query layer,
+  while preserving every source Group name in the uploaded database.
 
 ## [1.5.0] - 2026-08-05
 

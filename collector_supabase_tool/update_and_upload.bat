@@ -32,27 +32,22 @@ if not exist "%AUDIENCE_DB%" (
   goto :failed
 )
 
-echo [1/5] Merging live databases...
+echo [1/4] Merging live databases...
 python scripts\merge_live_databases.py --current "%CURRENT_DB%" --legacy "%LEGACY_DB%" --audience "%AUDIENCE_DB%" --output data\merged_live_data.db --report data\merge_report.json --overwrite
 if errorlevel 1 goto :failed
 
 echo.
-echo [2/5] Consolidating unlisted Groups into other...
-python scripts\consolidate_groups.py --database data\merged_live_data.db
-if errorlevel 1 goto :failed
-
-echo.
-echo [3/5] Synchronizing Group settings...
+echo [2/4] Synchronizing Group settings...
 python scripts\create_group_settings.py --database data\merged_live_data.db
 if errorlevel 1 goto :failed
 
 echo.
-echo [4/5] Rebuilding analytics cache...
+echo [3/4] Rebuilding analytics cache...
 python scripts\build_analytics_cache.py --source data\merged_live_data.db --output data\merged_analytics_cache.db
 if errorlevel 1 goto :failed
 
 echo.
-echo [5/5] Uploading to Supabase...
+echo [4/4] Uploading to Supabase...
 python scripts\sync_merged_to_postgres.py --confirm-replace
 if errorlevel 1 goto :failed
 

@@ -8,7 +8,7 @@ security definer
 set search_path = pg_catalog
 as $$
   select jsonb_build_object(
-    'streamers', (select count(*) from dashboard.streamer where enabled),
+    'streamers', (select count(*) from dashboard.effective_streamer where enabled),
     'live_now', (select count(*) from dashboard.current_live_status where is_live),
     'streams', (select count(*) from dashboard.stream),
     'viewers_now', (select coalesce(sum(viewer_count), 0) from dashboard.current_live_status where is_live),
@@ -37,7 +37,7 @@ as $$
            coalesce(st.title, stream.title, 'Unknown title') as title,
            audience.youtube_avatar_url, audience.twitch_avatar_url
       from dashboard.current_live_status cls
-      join dashboard.streamer s on s.vtuber_id = cls.vtuber_id
+      join dashboard.effective_streamer s on s.vtuber_id = cls.vtuber_id
       left join dashboard.stream stream on stream.stream_id = cls.stream_id
       left join dashboard.stream_title st on st.title_id = cls.title_id
       left join dashboard.streamer_audience audience on audience.vtuber_id = cls.vtuber_id
@@ -65,7 +65,7 @@ as $$
            row_number() over (partition by stats.platform order by stats.peak_viewers desc, stats.average_viewers desc, stats.started_at desc) as peak_rank,
            row_number() over (partition by stats.platform, stats.vtuber_id order by stats.average_viewers desc, stats.peak_viewers desc, stats.started_at desc) as average_member_rank,
            row_number() over (partition by stats.platform, stats.vtuber_id order by stats.peak_viewers desc, stats.average_viewers desc, stats.started_at desc) as peak_member_rank
-      from analytics.stream_stats stats
+      from analytics.effective_stream_stats stats
       cross join bounds
       left join dashboard.streamer_audience audience on audience.vtuber_id = stats.vtuber_id
      where stats.started_at >= ((bounds.this_week - 7)::timestamp at time zone 'Asia/Taipei')
@@ -117,7 +117,7 @@ as $$
            stats.platform, round(avg(stats.average_viewers))::integer as average_viewers,
            count(*) as stream_count, audience.youtube_avatar_url,
            audience.twitch_avatar_url
-      from analytics.stream_stats stats
+      from analytics.effective_stream_stats stats
       cross join bounds
       left join dashboard.streamer_audience audience on audience.vtuber_id = stats.vtuber_id
      where stats.started_at >= ((bounds.month_end - interval '1 month')::timestamp at time zone 'Asia/Taipei')
@@ -150,7 +150,7 @@ as $$
     select s.vtuber_id, s.group_name, s.enabled,
            audience.youtube_subscribers, audience.twitch_followers,
            count(distinct stream.stream_id) as stream_count
-      from dashboard.streamer s
+      from dashboard.effective_streamer s
       left join dashboard.stream stream on stream.vtuber_id = s.vtuber_id
       left join dashboard.streamer_audience audience on audience.vtuber_id = s.vtuber_id
      group by s.vtuber_id, s.group_name, s.enabled,

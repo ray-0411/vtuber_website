@@ -37,10 +37,12 @@ set "SOURCE_DIR=C:\Users\Ray\Desktop\collector"
 抓取器完成資料更新後，雙擊 `update_and_upload.bat`。它會依序：
 
 1. 合併 `live_data.db`、`legacy_live_data.db` 與 `streamer_audience.db`。
-2. 保留 Meridian、SquareLive、Envision、TheBox，其餘成員歸入 Other。
-3. 更新 Group 排序資料。
-4. 重建分析快取。
-5. 在單一交易中上傳 Supabase 並核對所有資料表筆數。
+2. 更新 Group 排序資料。
+3. 重建分析快取。
+4. 在單一交易中上傳 Supabase 並核對所有資料表筆數。
+
+網站會在查詢時把 `group_settings.display_order` 沒有數字的 Group 視為
+`other`；來源資料庫內的原始 Group 名稱不會被修改。
 
 看到 `Update and upload completed` 才表示全部完成。公開網站不需要重新部署，
 重新整理後就會讀到 Supabase 的新資料。
