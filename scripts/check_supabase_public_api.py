@@ -33,6 +33,17 @@ def main() -> int:
                 "order by stats.started_at desc limit 1"
             )
             sample_group, sample_vtuber, sample_stream = cursor.fetchone()
+            cursor.execute(
+                "select count(distinct analysis_period), count(*) "
+                "from analytics.member_period_stats"
+            )
+            cached_periods, cached_rows = cursor.fetchone()
+            if cached_periods != 5 or cached_rows == 0:
+                raise RuntimeError("Member ranking cache is incomplete")
+            print(
+                f"Member ranking cache: OK ({cached_periods} periods, "
+                f"{cached_rows:,} rows)"
+            )
             cursor.execute("set local role anon")
             for name, query in checks:
                 cursor.execute(query)

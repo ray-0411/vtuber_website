@@ -333,6 +333,18 @@ def sync_postgres(
                         f"Count mismatch for {target}: source={source_count}, "
                         f"target={target_count}"
                     )
+            cursor.execute("SELECT to_regclass('analytics.member_period_stats')")
+            if cursor.fetchone()[0] is not None:
+                cursor.execute(
+                    "REFRESH MATERIALIZED VIEW analytics.member_period_stats"
+                )
+                cursor.execute(
+                    "SELECT COUNT(*) FROM analytics.member_period_stats"
+                )
+                print(
+                    "Refreshed analytics.member_period_stats: "
+                    f"{cursor.fetchone()[0]:,} rows"
+                )
         postgres.commit()
 
 

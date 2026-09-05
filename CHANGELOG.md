@@ -31,6 +31,8 @@
   subtotals.
 - Add a dedicated Rankings page below a separated navigation section, with
   metric, platform, and analysis-period selectors.
+- Precompute all five member-ranking periods in a materialized view and refresh
+  it transactionally after each Supabase upload.
 
 ## [1.5.0] - 2026-08-05
 
