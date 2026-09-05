@@ -39,6 +39,8 @@
   values while keeping single-platform rankings compact.
 - Align combined, YouTube, and Twitch ranking values in fixed table-like
   columns with consistent regular-weight typography.
+- Replace the ranking value grid with a fixed-layout table so numeric columns
+  remain aligned and visible at narrow viewport widths.
 
 ## [1.5.0] - 2026-08-05
 
