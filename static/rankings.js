@@ -47,16 +47,17 @@ async function loadRankings() {
       const source = selectedSource(row, metric, platform);
       const avatar = row[`${source}_avatar_url`] || row.youtube_avatar_url || row.twitch_avatar_url;
       const profile = dashboardPath(`/groups/${encodeURIComponent(row.group_name)}/members/${encodeURIComponent(row.vtuber_id)}?period=${encodeURIComponent(period)}`);
-      const breakdown = platform === "combined" ? `<span class="ranking-breakdown">
-        <span><b>YT</b>${displayValue(row[`youtube_${metric}`], metric)}</span>
-        <span><b>TW</b>${displayValue(row[`twitch_${metric}`], metric)}</span>
-      </span>` : "";
+      const valueCells = platform === "combined" ? `
+        <span class="ranking-cell"><small>綜合</small><span>${displayValue(row.metric_value, metric)}</span></span>
+        <span class="ranking-cell"><small>YT</small><span>${displayValue(row[`youtube_${metric}`], metric)}</span></span>
+        <span class="ranking-cell"><small>TW</small><span>${displayValue(row[`twitch_${metric}`], metric)}</span></span>` : `
+        <span class="ranking-cell"><small>${platform === "youtube" ? "YT" : "TW"}</small><span>${displayValue(row.metric_value, metric)}</span></span>`;
       return `<a class="ranking-row" href="${safe(profile)}">
         <span class="ranking-position">${row.rank}</span>
         <span class="ranking-avatar">${avatar ? `<img src="${safe(avatar)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : safe(row.name?.slice(0,1) || "V")}</span>
         <span class="ranking-person"><strong>${safe(row.name)}</strong><small>${safe(row.vtuber_id)}</small></span>
         <span class="ranking-group">${safe(pretty(row.group_name))}</span>
-        <span class="ranking-value"><span class="ranking-primary">${displayValue(row.metric_value, metric)}<small class="ranking-source">${source === "youtube" ? "YT" : "TW"}${metric === "viewer_hours" ? " · h" : ""}</small></span>${breakdown}</span>
+        <span class="ranking-value ${platform}">${valueCells}</span>
       </a>`;
     }).join("") || `<div class="ranking-empty">這個條件目前沒有可排名的資料</div>`;
   } catch (error) {

@@ -37,6 +37,8 @@
   viewer hours.
 - Show regular-weight YouTube and Twitch subtotals beside combined ranking
   values while keeping single-platform rankings compact.
+- Align combined, YouTube, and Twitch ranking values in fixed table-like
+  columns with consistent regular-weight typography.
 
 ## [1.5.0] - 2026-08-05
 
