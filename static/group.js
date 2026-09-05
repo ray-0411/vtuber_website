@@ -47,7 +47,7 @@ function render() {
         <span><b>YT</b><strong>${row.youtube_average_viewers == null ? "—" : fmt.format(Math.round(row.youtube_average_viewers))}</strong></span>
         <span><b>TW</b><strong>${row.twitch_average_viewers == null ? "—" : fmt.format(Math.round(row.twitch_average_viewers))}</strong></span>
       </span>
-      <span class="member-stat viewer-hours-stat"><strong>${compactHours(row.viewer_hours)}</strong><small>觀眾小時</small></span>
+      <span class="member-stat viewer-hours-stat"><small>觀眾小時</small><strong>${compactHours(row.viewer_hours)}</strong></span>
       <span class="member-stat"><strong class="${row.is_live ? "now-live" : ""}">${row.is_live ? `直播中 · ${fmt.format(row.viewers_now || 0)}` : shortDate(row.latest_stream_at)}</strong><small>${row.is_live ? "目前觀眾" : "最近直播"}</small></span>
       <span class="arrow">›</span>
     </a>`).join("") || `<div class="empty">找不到符合條件的成員</div>`;
