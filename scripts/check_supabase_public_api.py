@@ -16,6 +16,10 @@ def main() -> int:
             "dashboard_monthly_average_rankings",
             "select public.dashboard_monthly_average_rankings()",
         ),
+        (
+            "dashboard_member_rankings",
+            "select public.dashboard_member_rankings('average_viewers', 'combined', '1m')",
+        ),
         ("dashboard_groups", "select public.dashboard_groups()"),
     )
     with psycopg.connect(database_url) as connection:

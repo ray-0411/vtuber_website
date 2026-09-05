@@ -29,8 +29,8 @@
   for values of 1,000 hours or more.
 - Split the member detail viewer-hours total into compact YouTube and Twitch
   subtotals.
-- Add a dedicated Rankings page placeholder below a separated section in the
-  navigation drawer.
+- Add a dedicated Rankings page below a separated navigation section, with
+  metric, platform, and analysis-period selectors.
 
 ## [1.5.0] - 2026-08-05
 

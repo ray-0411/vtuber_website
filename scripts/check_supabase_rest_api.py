@@ -69,6 +69,7 @@ def main() -> int:
         ("dashboard_stream_rankings", {"ranking_period": "this_week"}, dict),
         ("dashboard_stream_rankings", {"ranking_period": "this_month"}, dict),
         ("dashboard_monthly_average_rankings", {}, dict),
+        ("dashboard_member_rankings", {"ranking_metric": "average_viewers", "ranking_platform": "combined", "analysis_period": "1m"}, list),
         ("dashboard_groups", {}, list),
         ("dashboard_group_members", {"requested_group": group, "analysis_period": "1m"}, list),
         ("dashboard_stream_snapshots", {"requested_stream_id": stream_id}, dict),

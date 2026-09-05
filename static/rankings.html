@@ -33,17 +33,22 @@
     <section class="rankings-hero">
       <p class="eyebrow">RANKINGS</p>
       <h1>排行榜</h1>
-      <p>排行榜頁面已建立，排名項目與統計內容將於下一步加入。</p>
+      <p>比較所有成員在指定期間與平台的直播表現。</p>
     </section>
-    <section class="rankings-placeholder">
-      <span>#</span>
-      <h2>內容準備中</h2>
-      <p>請指定想查看的排名、期間與篩選方式。</p>
+    <section class="ranking-controls" aria-label="排行榜篩選">
+      <label>排序項目<select id="ranking-metric"><option value="average_viewers">平均觀眾數</option><option value="peak_viewers">最高觀眾數</option><option value="viewer_hours">觀眾小時</option></select></label>
+      <label>平台<select id="ranking-platform"><option value="combined">綜合</option><option value="youtube">YouTube</option><option value="twitch">Twitch</option></select></label>
+      <label>時間<select id="ranking-period"><option value="1m">近 1 個月</option><option value="3m">近 3 個月</option><option value="6m">近 6 個月</option><option value="1y">近 1 年</option><option value="all">全部</option></select></label>
+    </section>
+    <section class="ranking-panel">
+      <div class="ranking-heading"><div><p class="eyebrow">ALL MEMBERS</p><h2 id="ranking-title">平均觀眾數排行榜</h2></div><span id="ranking-count">讀取中…</span></div>
+      <div class="ranking-list" id="ranking-list"><div class="ranking-empty">正在載入排行榜…</div></div>
     </section>
   </main>
   <footer><a href="./">← 回到直播總覽</a><span>Live Observatory · Rankings</span></footer>
   <script src="supabase-config.js?v=1"></script>
-  <script src="api-client.js?v=3"></script>
+  <script src="api-client.js?v=4"></script>
   <script src="navigation.js?v=4"></script>
+  <script src="rankings.js?v=1"></script>
 </body>
 </html>

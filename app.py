@@ -295,6 +295,75 @@ class DashboardRepository:
             },
         }
 
+    def member_rankings(self, metric="average_viewers", platform="combined", period="1m"):
+        valid_metrics = {"average_viewers", "peak_viewers", "viewer_hours"}
+        valid_platforms = {"combined", "youtube", "twitch"}
+        period_modifiers = {
+            "1m": "-1 month", "3m": "-3 months", "6m": "-6 months",
+            "1y": "-1 year", "all": None,
+        }
+        if metric not in valid_metrics or platform not in valid_platforms:
+            raise ValueError("Invalid ranking selection")
+        if period not in period_modifiers:
+            raise ValueError("Invalid analysis period")
+        with self.connect() as db:
+            cutoff = None
+            if period_modifiers[period] is not None:
+                cutoff = db.execute(
+                    "SELECT date('now', 'localtime', ?)",
+                    (period_modifiers[period],),
+                ).fetchone()[0]
+            rows = db.execute(
+                """
+                SELECT stats.vtuber_id, MAX(stats.member_name) AS name,
+                       CASE WHEN MAX(settings.display_order) IS NOT NULL
+                                  OR MAX(stats.group_name) = 'other'
+                            THEN MAX(stats.group_name) ELSE 'other' END AS group_name,
+                       stats.platform,
+                       AVG(CASE WHEN stats.snapshot_count > 3
+                                THEN stats.average_viewers END) AS average_viewers,
+                       MAX(stats.peak_viewers) AS peak_viewers,
+                       SUM(CASE WHEN stats.average_viewers IS NOT NULL
+                                THEN stats.average_viewers * stats.observed_hours END)
+                         AS viewer_hours,
+                       MAX(audience.youtube_avatar_url) AS youtube_avatar_url,
+                       MAX(audience.twitch_avatar_url) AS twitch_avatar_url
+                FROM analytics.stream_stats stats
+                LEFT JOIN group_settings settings
+                       ON settings.group_name = stats.group_name
+                LEFT JOIN streamer_audience audience
+                       ON audience.vtuber_id = stats.vtuber_id
+                WHERE :cutoff IS NULL OR stats.started_at >= :cutoff
+                GROUP BY stats.vtuber_id, stats.platform
+                """,
+                {"cutoff": cutoff},
+            ).fetchall()
+        members = {}
+        for raw in rows:
+            row = self._clean(raw)
+            member = members.setdefault(row["vtuber_id"], {
+                "vtuber_id": row["vtuber_id"], "name": row["name"],
+                "group_name": row["group_name"],
+                "youtube_avatar_url": row["youtube_avatar_url"],
+                "twitch_avatar_url": row["twitch_avatar_url"],
+            })
+            for key in valid_metrics:
+                member[f"{row['platform']}_{key}"] = row[key]
+        ranked = []
+        for member in members.values():
+            youtube = member.get(f"youtube_{metric}")
+            twitch = member.get(f"twitch_{metric}")
+            value = member.get(f"{platform}_{metric}") if platform != "combined" else max(
+                (item for item in (youtube, twitch) if item is not None), default=None
+            )
+            if value is not None:
+                member["metric_value"] = value
+                ranked.append(member)
+        ranked.sort(key=lambda row: (-row["metric_value"], row["name"], row["vtuber_id"]))
+        for rank, row in enumerate(ranked, 1):
+            row["rank"] = rank
+        return ranked
+
     def group_members(self, group_name, period="1m"):
         period_modifiers = {
             "1m": "-1 month",
@@ -993,6 +1062,13 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 ))
             if parsed.path == "/api/rankings/monthly-average":
                 return self.send_json(self.repository.monthly_average_ranking())
+            if parsed.path == "/api/rankings/members":
+                params = parse_qs(parsed.query)
+                return self.send_json(self.repository.member_rankings(
+                    metric=params.get("metric", ["average_viewers"])[0],
+                    platform=params.get("platform", ["combined"])[0],
+                    period=params.get("period", ["1m"])[0],
+                ))
             parts = [part for part in parsed.path.split("/") if part]
             if (
                 len(parts) == 4

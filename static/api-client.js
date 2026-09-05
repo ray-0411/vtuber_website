@@ -12,6 +12,11 @@
       ranking_period: url.searchParams.get("period") || "last_week",
     }];
     if (path === "/api/rankings/monthly-average") return ["dashboard_monthly_average_rankings", {}];
+    if (path === "/api/rankings/members") return ["dashboard_member_rankings", {
+      ranking_metric: url.searchParams.get("metric") || "average_viewers",
+      ranking_platform: url.searchParams.get("platform") || "combined",
+      analysis_period: url.searchParams.get("period") || "1m",
+    }];
     if (path === "/api/groups") return ["dashboard_groups", {}];
 
     let match = path.match(/^\/api\/streams\/(\d+)\/snapshots$/);
