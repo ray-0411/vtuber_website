@@ -35,6 +35,8 @@
   it transactionally after each Supabase upload.
 - Keep the dedicated member ranking selector focused on average viewers and
   viewer hours.
+- Show regular-weight YouTube and Twitch subtotals beside combined ranking
+  values while keeping single-platform rankings compact.
 
 ## [1.5.0] - 2026-08-05
 
