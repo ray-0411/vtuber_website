@@ -225,7 +225,8 @@ begin
       case when requested_vtuber is null then (select round(avg(tw_avg)::numeric,1) from per_member) else round(avg(average_viewers) filter(where platform='twitch' and snapshot_count>3)::numeric,1) end as twitch_average_viewers,
       coalesce(sum(snapshot_count),0) as snapshot_count, min(started_at) as first_stream_at,
       max(started_at) as latest_stream_at,
-      round(coalesce(sum(greatest(extract(epoch from (last_capture-first_capture))/3600,0)) filter(where first_capture is not null and last_capture is not null),0)::numeric,1) as observed_hours
+      round(coalesce(sum(greatest(extract(epoch from (last_capture-first_capture))/3600,0)) filter(where first_capture is not null and last_capture is not null),0)::numeric,1) as observed_hours,
+      round(coalesce(sum(average_viewers * greatest(extract(epoch from (last_capture-first_capture))/3600,0)) filter(where average_viewers is not null and first_capture is not null and last_capture is not null),0)::numeric,1) as viewer_hours
     from period_streams
   ), recent as (
     select stream_id, vtuber_id, member_name, platform, stream_url, title, category,

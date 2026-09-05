@@ -202,6 +202,7 @@ async function init() {
   $("#twitch-peak").textContent = summary.twitch_peak_viewers == null ? "—" : fmt.format(summary.twitch_peak_viewers);
   $("#youtube-viewers").textContent = summary.youtube_average_viewers == null ? "—" : fmt.format(Math.round(summary.youtube_average_viewers));
   $("#twitch-viewers").textContent = summary.twitch_average_viewers == null ? "—" : fmt.format(Math.round(summary.twitch_average_viewers));
+  $("#viewer-hours").textContent = `${fmt.format(summary.viewer_hours || 0)}h`;
   $("#observed-hours").textContent = `${fmt.format(summary.observed_hours || 0)}h`;
   $("#hour-chart").innerHTML = hourChart(active_intervals);
   const maxCategory = Math.max(...categories.map(x => x.stream_count), 1);
