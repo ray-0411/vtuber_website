@@ -25,6 +25,11 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
+      - name: Write deployed commit version
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          printf 'window.DASHBOARD_BUILD = { commit: "%s" };\n' "$short_sha" > static/build-version.js
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:

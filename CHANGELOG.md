@@ -43,6 +43,8 @@
   remain aligned and visible at narrow viewport widths.
 - Remove ranking `colgroup` sizing that could create hidden columns and offset
   the YouTube and Twitch headings in narrow layouts.
+- Display the exact deployed Git commit beside the homepage update time, with
+  the value generated automatically by the GitHub Pages workflow.
 
 ## [1.5.0] - 2026-08-05
 

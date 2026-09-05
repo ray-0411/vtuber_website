@@ -63,6 +63,9 @@ body {
   background: #43bc75;
   box-shadow: 0 0 0 4px rgba(67, 188, 117, .12);
 }
+.status-divider { opacity: .45; }
+.status a { color: inherit; font: 11px "Cascadia Code", Consolas, monospace; text-decoration: none; }
+.status a[href]:hover { color: var(--blue); text-decoration: underline; }
 
 main { width: min(1180px, 90vw); margin: auto; }
 .hero {

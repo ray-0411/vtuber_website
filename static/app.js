@@ -1,5 +1,12 @@
 const $ = (selector) => document.querySelector(selector);
 const fmt = new Intl.NumberFormat("zh-TW");
+const deployedCommit = window.DASHBOARD_BUILD?.commit || "local";
+$("#build-version").textContent = `版本 ${deployedCommit}`;
+if (deployedCommit !== "local") {
+  $("#build-version").href = `https://github.com/ray-0411/vtuber_website/commit/${encodeURIComponent(deployedCommit)}`;
+  $("#build-version").target = "_blank";
+  $("#build-version").rel = "noreferrer";
+}
 
 async function getJSON(url) {
   const response = await dashboardFetch(url);

@@ -7,7 +7,7 @@
   <base id="site-base" href="/">
   <script>if(location.hostname.endsWith(".github.io"))document.getElementById("site-base").href="/vtuber_website/";</script>
   <script src="site.js?v=2"></script>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=18">
   <link rel="stylesheet" href="navigation.css?v=3">
   <link rel="stylesheet" href="dashboard-theme.css?v=5">
 </head>
@@ -17,7 +17,7 @@
       <button class="menu-button" type="button" aria-label="開啟導覽選單" aria-expanded="false"><span></span></button>
       <a class="brand" href="./"><span class="brand-mark">V</span><span>Live Observatory</span></a>
     </div>
-    <div class="status"><i></i><span id="sync-label">正在連線資料庫…</span></div>
+    <div class="status"><i></i><span id="sync-label">正在連線資料庫…</span><span class="status-divider">·</span><a id="build-version">版本 local</a></div>
   </header>
   <div class="drawer-overlay"></div>
   <aside class="nav-drawer" aria-label="網站導覽">
@@ -110,8 +110,9 @@
 
   <footer><span>Live Observatory · local preview</span><span>資料來源：live_data.db</span></footer>
   <script src="supabase-config.js?v=1"></script>
+  <script src="build-version.js?v=1"></script>
   <script src="api-client.js?v=3"></script>
   <script src="navigation.js?v=4"></script>
-  <script src="app.js?v=17"></script>
+  <script src="app.js?v=18"></script>
 </body>
 </html>
