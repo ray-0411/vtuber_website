@@ -9,3 +9,7 @@
 .member-row{grid-template-columns:48px minmax(180px,1.4fr) 1fr 1fr .65fr 1fr 30px}
 @media(max-width:800px){.member-row{grid-template-columns:44px 1fr .7fr 20px}.member-row .member-stat{display:none}.member-row .viewer-hours-stat{display:block}}
 @media(max-width:480px){.member-row{grid-template-columns:40px 1fr .7fr 20px}.member-row .viewer-hours-stat{display:block}}
+.viewer-hours-card>strong{font-size:38px}
+.viewer-hours-card>div strong{font-size:18px}
+.viewer-hours-card>div b{font-size:8px}
+@media(max-width:700px){.viewer-hours-card>strong{font-size:30px}.viewer-hours-card>div strong{font-size:16px}}
