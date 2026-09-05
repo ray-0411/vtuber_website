@@ -1,5 +1,9 @@
 const $ = selector => document.querySelector(selector);
-const numberFormat = new Intl.NumberFormat("zh-TW", {maximumFractionDigits: 1});
+const numberFormat = new Intl.NumberFormat("zh-TW", {
+  useGrouping: false,
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 const integerFormat = new Intl.NumberFormat("zh-TW", {maximumFractionDigits: 0});
 const metricLabels = {
   average_viewers: "平均觀眾數",
@@ -27,7 +31,7 @@ function selectedSource(row, metric, platform) {
 
 function displayValue(value, metric) {
   if (value == null) return "—";
-  return metric === "peak_viewers" ? integerFormat.format(value) : numberFormat.format(value);
+  return metric === "peak_viewers" ? Math.round(value).toString() : numberFormat.format(value);
 }
 
 async function loadRankings() {
