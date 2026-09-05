@@ -33,6 +33,8 @@
   metric, platform, and analysis-period selectors.
 - Precompute all five member-ranking periods in a materialized view and refresh
   it transactionally after each Supabase upload.
+- Keep the dedicated member ranking selector focused on average viewers and
+  viewer hours.
 
 ## [1.5.0] - 2026-08-05
 
