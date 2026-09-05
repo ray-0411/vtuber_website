@@ -6,3 +6,6 @@
 .metric-grid{grid-template-columns:repeat(5,1fr)}
 @media(max-width:800px){.metric-grid{grid-template-columns:1fr 1fr}.metric-grid article:nth-child(4){border-right:0}.metric-grid article:nth-child(5){grid-column:1/-1}}
 @media(max-width:480px){.metric-grid{grid-template-columns:1fr 1fr}}
+.member-row{grid-template-columns:48px minmax(180px,1.4fr) 1fr 1fr .65fr 1fr 30px}
+@media(max-width:800px){.member-row{grid-template-columns:44px 1fr .7fr 20px}.member-row .member-stat{display:none}.member-row .viewer-hours-stat{display:block}}
+@media(max-width:480px){.member-row{grid-template-columns:40px 1fr .7fr 20px}.member-row .viewer-hours-stat{display:block}}

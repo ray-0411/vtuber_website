@@ -321,7 +321,8 @@ class DashboardRepository:
                 """
                 WITH per_stream AS (
                   SELECT stream_id, vtuber_id, platform, started_at,
-                         peak_viewers, average_viewers, snapshot_count
+                         peak_viewers, average_viewers, snapshot_count,
+                         observed_hours
                   FROM analytics.stream_stats
                 ),
                 live_status AS (
@@ -360,6 +361,10 @@ class DashboardRepository:
                                        AND ps.snapshot_count > 3
                                        AND (:cutoff IS NULL OR ps.started_at >= :cutoff)
                                       THEN ps.average_viewers END), 1) AS twitch_average_viewers,
+                       ROUND(SUM(CASE WHEN ps.average_viewers IS NOT NULL
+                                      AND (:cutoff IS NULL OR ps.started_at >= :cutoff)
+                                     THEN ps.average_viewers * ps.observed_hours
+                                     ELSE 0 END), 1) AS viewer_hours,
                        MIN(ps.started_at) AS first_stream_at,
                        MAX(ps.started_at) AS latest_stream_at,
                        COALESCE(cls.is_live, 0) AS is_live,

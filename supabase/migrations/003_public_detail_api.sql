@@ -43,6 +43,7 @@ begin
            (avg(stats.peak_viewers) filter (where stats.snapshot_count > 3 and (cutoff_date is null or stats.started_at >= cutoff_date::timestamp at time zone 'Asia/Taipei')))::integer as average_peak_viewers,
            round(avg(stats.average_viewers) filter (where stats.platform='youtube' and stats.snapshot_count > 3 and (cutoff_date is null or stats.started_at >= cutoff_date::timestamp at time zone 'Asia/Taipei'))::numeric, 1) as youtube_average_viewers,
            round(avg(stats.average_viewers) filter (where stats.platform='twitch' and stats.snapshot_count > 3 and (cutoff_date is null or stats.started_at >= cutoff_date::timestamp at time zone 'Asia/Taipei'))::numeric, 1) as twitch_average_viewers,
+           round(coalesce(sum(stats.average_viewers * stats.observed_hours) filter (where stats.average_viewers is not null and (cutoff_date is null or stats.started_at >= cutoff_date::timestamp at time zone 'Asia/Taipei')), 0)::numeric, 1) as viewer_hours,
            min(stats.started_at) as first_stream_at, max(stats.started_at) as latest_stream_at,
            coalesce(live.is_live, false) as is_live, live.viewers_now
       from dashboard.effective_streamer s
