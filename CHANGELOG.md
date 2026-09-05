@@ -27,6 +27,8 @@
   stream's average viewers and observed snapshot duration.
 - Show period-aware viewer hours in Group member lists, abbreviated with `k`
   for values of 1,000 hours or more.
+- Split the member detail viewer-hours total into compact YouTube and Twitch
+  subtotals.
 
 ## [1.5.0] - 2026-08-05
 

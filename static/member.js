@@ -77,6 +77,12 @@ function fullDateTime(value) {
   return dashboardDateTime(value);
 }
 
+function compactHours(value) {
+  const hours = Number(value) || 0;
+  if (hours < 1000) return fmt.format(Math.round(hours));
+  return `${(hours / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+}
+
 function viewerChart(snapshots, platform) {
   if (!snapshots.length) return `<div class="empty">這場直播沒有觀眾 snapshot</div>`;
   const width = 1000, height = 290, left = 52, right = 20, top = 20, bottom = 42;
@@ -203,6 +209,8 @@ async function init() {
   $("#youtube-viewers").textContent = summary.youtube_average_viewers == null ? "—" : fmt.format(Math.round(summary.youtube_average_viewers));
   $("#twitch-viewers").textContent = summary.twitch_average_viewers == null ? "—" : fmt.format(Math.round(summary.twitch_average_viewers));
   $("#viewer-hours").textContent = `${fmt.format(summary.viewer_hours || 0)}h`;
+  $("#youtube-viewer-hours").textContent = compactHours(summary.youtube_viewer_hours);
+  $("#twitch-viewer-hours").textContent = compactHours(summary.twitch_viewer_hours);
   $("#observed-hours").textContent = `${fmt.format(summary.observed_hours || 0)}h`;
   $("#hour-chart").innerHTML = hourChart(active_intervals);
   const maxCategory = Math.max(...categories.map(x => x.stream_count), 1);

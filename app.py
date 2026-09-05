@@ -529,7 +529,21 @@ class DashboardRepository:
                          THEN average_viewers * MAX(
                            (julianday(last_capture) - julianday(first_capture)) * 24, 0
                          ) ELSE 0 END
-                       ), 1) AS viewer_hours
+                       ), 1) AS viewer_hours,
+                       ROUND(SUM(CASE WHEN platform = 'youtube'
+                                          AND average_viewers IS NOT NULL
+                                          AND first_capture IS NOT NULL
+                                          AND last_capture IS NOT NULL
+                                     THEN average_viewers * MAX(
+                                       (julianday(last_capture) - julianday(first_capture)) * 24, 0
+                                     ) ELSE 0 END), 1) AS youtube_viewer_hours,
+                       ROUND(SUM(CASE WHEN platform = 'twitch'
+                                          AND average_viewers IS NOT NULL
+                                          AND first_capture IS NOT NULL
+                                          AND last_capture IS NOT NULL
+                                     THEN average_viewers * MAX(
+                                       (julianday(last_capture) - julianday(first_capture)) * 24, 0
+                                     ) ELSE 0 END), 1) AS twitch_viewer_hours
                 FROM per_stream
                 """,
                 (vtuber_id, cutoff, cutoff),
@@ -882,7 +896,21 @@ class DashboardRepository:
                          THEN average_viewers * MAX(
                            (julianday(last_capture) - julianday(first_capture)) * 24, 0
                          ) ELSE 0 END
-                       ), 1) AS viewer_hours
+                       ), 1) AS viewer_hours,
+                       ROUND(SUM(CASE WHEN platform = 'youtube'
+                                          AND average_viewers IS NOT NULL
+                                          AND first_capture IS NOT NULL
+                                          AND last_capture IS NOT NULL
+                                     THEN average_viewers * MAX(
+                                       (julianday(last_capture) - julianday(first_capture)) * 24, 0
+                                     ) ELSE 0 END), 1) AS youtube_viewer_hours,
+                       ROUND(SUM(CASE WHEN platform = 'twitch'
+                                          AND average_viewers IS NOT NULL
+                                          AND first_capture IS NOT NULL
+                                          AND last_capture IS NOT NULL
+                                     THEN average_viewers * MAX(
+                                       (julianday(last_capture) - julianday(first_capture)) * 24, 0
+                                     ) ELSE 0 END), 1) AS twitch_viewer_hours
                 FROM per_stream
                 """,
                 (group_name, cutoff, cutoff),
