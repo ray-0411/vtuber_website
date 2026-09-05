@@ -9,3 +9,5 @@
 @media(max-width:720px){.member-ranking-table .ranking-number{font-size:14px}}
 .member-ranking-table th:first-child,.member-ranking-table td:first-child{width:58px}.member-ranking-table th:nth-child(3),.member-ranking-table td:nth-child(3){width:110px}.member-ranking-table th:nth-child(n+4),.member-ranking-table td:nth-child(n+4){width:105px}.member-ranking-table th:nth-child(n+4){color:#111;font-size:13px}.member-ranking-table.single-platform th:nth-child(4),.member-ranking-table.single-platform td:nth-child(4){width:130px}
 @media(max-width:720px){.member-ranking-table th:first-child,.member-ranking-table td:first-child{width:auto}.member-ranking-table th:nth-child(3),.member-ranking-table td:nth-child(3),.member-ranking-table th:nth-child(n+4),.member-ranking-table td:nth-child(n+4){width:auto}.member-ranking-table .ranking-number:before{color:#111;font-size:11px}}
+.member-ranking-table:not(.single-platform) .ranking-number{transform:translateX(-10px)}
+@media(max-width:720px){.member-ranking-table:not(.single-platform) .ranking-number{transform:translateX(-4px)}}
