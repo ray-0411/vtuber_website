@@ -41,6 +41,8 @@
   columns with consistent regular-weight typography.
 - Replace the ranking value grid with a fixed-layout table so numeric columns
   remain aligned and visible at narrow viewport widths.
+- Remove ranking `colgroup` sizing that could create hidden columns and offset
+  the YouTube and Twitch headings in narrow layouts.
 
 ## [1.5.0] - 2026-08-05
 
