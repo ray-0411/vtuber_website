@@ -15,6 +15,14 @@
     word => word.charAt(0).toUpperCase() + word.slice(1)
   ).join(" ");
   const current = dashboardRoutePath().match(/^\/groups\/([^/]+)/)?.[1];
+  if (list && !document.querySelector(".drawer-ranking")) {
+    const ranking = document.createElement("a");
+    const rankingActive = /^\/rankings(?:\.html)?\/?$/.test(dashboardRoutePath());
+    ranking.className = `drawer-ranking ${rankingActive ? "active" : ""}`;
+    ranking.href = dashboardPath("/rankings");
+    ranking.innerHTML = `<span class="drawer-ranking-mark">#</span><span><strong>排行榜</strong><small>各項排名與統計</small></span><small>→</small>`;
+    list.after(ranking);
+  }
   if (foot && !document.querySelector(".drawer-about")) {
     const about = document.createElement("a");
     about.className = `drawer-about ${dashboardRoutePath() === "/about.html" ? "active" : ""}`;

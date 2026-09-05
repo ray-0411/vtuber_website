@@ -1074,7 +1074,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
     def serve_static(self, request_path):
         parts = [part for part in request_path.split("/") if part]
-        if len(parts) == 2 and parts[0] == "groups":
+        if parts == ["rankings"]:
+            relative = "rankings.html"
+        elif len(parts) == 2 and parts[0] == "groups":
             relative = "group.html"
         elif len(parts) == 3 and parts[0] == "groups" and parts[2] == "analysis":
             relative = "member.html"

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>排行榜 · Live Observatory</title>
+  <base id="site-base" href="/">
+  <script>if(location.hostname.endsWith(".github.io"))document.getElementById("site-base").href="/vtuber_website/";</script>
+  <script src="site.js?v=2"></script>
+  <link rel="stylesheet" href="analytics.css?v=4">
+  <link rel="stylesheet" href="navigation.css?v=3">
+  <link rel="stylesheet" href="dashboard-theme.css?v=5">
+  <link rel="stylesheet" href="rankings.css?v=1">
+</head>
+<body class="rankings-page">
+  <header class="topbar">
+    <div class="nav-left">
+      <button class="menu-button" type="button" aria-label="開啟導覽選單" aria-expanded="false"><span></span></button>
+      <a class="brand" href="./"><span class="brand-mark">V</span><span>Live Observatory</span></a>
+    </div>
+    <nav><a href="./">總覽</a><a class="active" href="rankings">排行榜</a></nav>
+  </header>
+  <div class="drawer-overlay"></div>
+  <aside class="nav-drawer" aria-label="網站導覽">
+    <div class="drawer-head"><strong>Explore</strong><button class="drawer-close" type="button" aria-label="關閉選單">×</button></div>
+    <a class="drawer-home" href="./"><span>直播總覽</span><span>⌂</span></a>
+    <div class="drawer-section-title">GROUP ANALYTICS</div>
+    <div class="drawer-groups"><div class="drawer-loading">載入 Group 中…</div></div>
+    <div class="drawer-foot">LIVE OBSERVATORY</div>
+  </aside>
+  <main class="rankings-main">
+    <div class="crumbs"><a href="./">首頁</a><span>/</span><span>排行榜</span></div>
+    <section class="rankings-hero">
+      <p class="eyebrow">RANKINGS</p>
+      <h1>排行榜</h1>
+      <p>排行榜頁面已建立，排名項目與統計內容將於下一步加入。</p>
+    </section>
+    <section class="rankings-placeholder">
+      <span>#</span>
+      <h2>內容準備中</h2>
+      <p>請指定想查看的排名、期間與篩選方式。</p>
+    </section>
+  </main>
+  <footer><a href="./">← 回到直播總覽</a><span>Live Observatory · Rankings</span></footer>
+  <script src="supabase-config.js?v=1"></script>
+  <script src="api-client.js?v=3"></script>
+  <script src="navigation.js?v=4"></script>
+</body>
+</html>
