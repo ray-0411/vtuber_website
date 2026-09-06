@@ -38,6 +38,7 @@ async function loadRankings() {
   const metric = $("#ranking-metric").value;
   const platform = $("#ranking-platform").value;
   const period = $("#ranking-period").value;
+  const group = $("#ranking-group").value;
   const list = $("#ranking-list");
   const table = $("#member-ranking-table");
   const combined = platform === "combined";
@@ -49,14 +50,15 @@ async function loadRankings() {
   try {
     const response = await dashboardFetch(`/api/rankings/members?${query}`);
     if (!response.ok) throw new Error("排行榜讀取失敗");
-    const rows = await response.json();
+    const allRows = await response.json();
+    const rows = group ? allRows.filter(row => row.group_name === group) : allRows;
     $("#ranking-count").textContent = `${integerFormat.format(rows.length)} 位成員`;
-    list.innerHTML = rows.map(row => {
+    list.innerHTML = rows.map((row, index) => {
       const source = selectedSource(row, metric, platform);
       const avatar = row[`${source}_avatar_url`] || row.youtube_avatar_url || row.twitch_avatar_url;
       const profile = dashboardPath(`/groups/${encodeURIComponent(row.group_name)}/members/${encodeURIComponent(row.vtuber_id)}?period=${encodeURIComponent(period)}`);
       return `<tr class="ranking-table-row" data-href="${safe(profile)}" tabindex="0">
-        <td class="ranking-position">${row.rank}</td>
+        <td class="ranking-position">${index + 1}</td>
         <td><a class="ranking-member" href="${safe(profile)}"><span class="ranking-avatar">${avatar ? `<img src="${safe(avatar)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : safe(row.name?.slice(0,1) || "V")}</span><span class="ranking-person"><strong>${safe(row.name)}</strong><small>${safe(row.vtuber_id)}</small></span></a></td>
         <td class="ranking-group">${safe(pretty(row.group_name))}</td>
         <td class="ranking-number">${displayValue(row.metric_value, metric)}</td>
@@ -78,7 +80,30 @@ async function loadRankings() {
   }
 }
 
+async function loadRankingGroups() {
+  const select = $("#ranking-group");
+  try {
+    const response = await dashboardFetch("/api/groups");
+    if (!response.ok) throw new Error("Group 讀取失敗");
+    const groups = await response.json();
+    select.insertAdjacentHTML("beforeend", groups.map(group =>
+      `<option value="${safe(group.group_name)}">${safe(pretty(group.group_name))}</option>`
+    ).join(""));
+  } catch {
+    select.disabled = true;
+  }
+}
+
+const moreButton = $("#ranking-more-button");
+const moreOptions = $("#ranking-more-options");
+moreButton.addEventListener("click", () => {
+  const expanded = moreButton.getAttribute("aria-expanded") === "true";
+  moreButton.setAttribute("aria-expanded", String(!expanded));
+  moreOptions.hidden = expanded;
+});
+
 document.querySelectorAll(".ranking-controls select").forEach(select => {
   select.addEventListener("change", loadRankings);
 });
+loadRankingGroups();
 loadRankings();

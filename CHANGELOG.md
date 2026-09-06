@@ -20,6 +20,8 @@
 
 ### Added
 
+- Add an expandable Group filter to the member Rankings page, defaulting to
+  all members.
 - Add an editable About page and a persistent link at the bottom of the left
   navigation drawer.
 - Treat Groups without a numeric `display_order` as `other` in the query layer,

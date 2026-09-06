@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="analytics.css?v=4">
   <link rel="stylesheet" href="navigation.css?v=6">
   <link rel="stylesheet" href="dashboard-theme.css?v=5">
-  <link rel="stylesheet" href="rankings.css?v=9">
+  <link rel="stylesheet" href="rankings.css?v=10">
 </head>
 <body class="rankings-page">
   <header class="topbar">
@@ -34,6 +34,10 @@
       <label>排序項目<select id="ranking-metric"><option value="average_viewers">平均觀眾數</option><option value="viewer_hours">觀眾小時</option></select></label>
       <label>平台<select id="ranking-platform"><option value="combined">綜合</option><option value="youtube">YouTube</option><option value="twitch">Twitch</option></select></label>
       <label>時間<select id="ranking-period"><option value="1m">近 1 個月</option><option value="3m">近 3 個月</option><option value="6m">近 6 個月</option><option value="1y">近 1 年</option><option value="all">全部</option></select></label>
+      <button class="ranking-more-button" id="ranking-more-button" type="button" aria-expanded="false" aria-controls="ranking-more-options">更多<span aria-hidden="true">⌄</span></button>
+      <div class="ranking-more-options" id="ranking-more-options" hidden>
+        <label>Group<select id="ranking-group"><option value="">全部人</option></select></label>
+      </div>
     </section>
     <section class="ranking-panel">
       <div class="ranking-heading"><div><p class="eyebrow">ALL MEMBERS</p><h2 id="ranking-title">平均觀眾數排行榜</h2></div><span id="ranking-count">讀取中…</span></div>
@@ -50,6 +54,6 @@
   <script src="build-version.js?v=1"></script>
   <script src="api-client.js?v=4"></script>
   <script src="navigation.js?v=5"></script>
-  <script src="rankings.js?v=5"></script>
+  <script src="rankings.js?v=6"></script>
 </body>
 </html>
