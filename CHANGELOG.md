@@ -45,6 +45,8 @@
   the YouTube and Twitch headings in narrow layouts.
 - Display the exact deployed Git commit beside the homepage update time, with
   the value generated automatically by the GitHub Pages workflow.
+- Show the shared latest-update time and deployed commit status in the top bar
+  of every dashboard page.
 
 ## [1.5.0] - 2026-08-05
 

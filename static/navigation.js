@@ -8,6 +8,37 @@
   const foot = document.querySelector(".drawer-foot");
   let loaded = false;
 
+  const topbar = document.querySelector(".topbar");
+  if (topbar && !topbar.querySelector(".status")) {
+    const status = document.createElement("div");
+    const commit = window.DASHBOARD_BUILD?.commit || "local";
+    status.className = "status global-status";
+    status.innerHTML = `<i></i><span class="global-sync-label">正在連線資料庫…</span><span class="status-divider">·</span><a class="global-build-version">版本 ${commit}</a>`;
+    const versionLink = status.querySelector(".global-build-version");
+    if (commit !== "local") {
+      versionLink.href = `https://github.com/ray-0411/vtuber_website/commit/${encodeURIComponent(commit)}`;
+      versionLink.target = "_blank";
+      versionLink.rel = "noreferrer";
+    }
+    const nav = topbar.querySelector("nav");
+    if (nav) {
+      const meta = document.createElement("div");
+      meta.className = "topbar-meta";
+      nav.before(meta);
+      meta.append(nav, status);
+    } else {
+      topbar.append(status);
+    }
+    dashboardFetch("/api/overview").then(response => {
+      if (!response.ok) throw new Error("讀取失敗");
+      return response.json();
+    }).then(data => {
+      status.querySelector(".global-sync-label").textContent = `最近更新 ${dashboardDateTime(data.last_checked_at)}`;
+    }).catch(() => {
+      status.querySelector(".global-sync-label").textContent = "更新時間讀取失敗";
+    });
+  }
+
   const safe = value => String(value ?? "").replace(/[&<>"']/g, c => (
     {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]
   ));
