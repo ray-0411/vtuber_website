@@ -11,6 +11,7 @@
 
 ### Fixed
 
+- Use a plain white background and black text for the Rankings drawer item.
 - Move the calendar-period selector to the single-stream ranking while restoring
   the lower section to the previous complete month's member-average ranking.
 - Show the actual ranked month in the monthly-average heading.
